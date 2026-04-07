@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Palash UAC Campaign Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f0f4f8;--card:#fff;--border:#e2e8f0;--text:#1a202c;--muted:#718096;--accent:#4f46e5;--shadow:0 1px 3px rgba(0,0,0,.07),0 2px 8px rgba(0,0,0,.05);--r:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#1e1b4b,#312e81 60%,#4338ca);color:#fff;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.35rem;font-weight:700;letter-spacing:-.02em}
+.header p{font-size:.78rem;color:rgba(255,255,255,.65);margin-top:2px}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn-group{display:flex;background:rgba(255,255,255,.12);border-radius:8px;padding:3px;gap:2px}
+.btn-group button{background:transparent;border:none;color:rgba(255,255,255,.75);padding:5px 13px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:500;transition:all .15s}
+.btn-group button.active,.btn-group button:hover{background:rgba(255,255,255,.25);color:#fff}
+.badge-live{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:.72rem;color:rgba(255,255,255,.8)}
+.dot{width:7px;height:7px;background:#10b981;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.main{padding:24px 32px;max-width:1600px;margin:0 auto}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px;margin-bottom:22px}
+.kpi{background:var(--card);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow);border:1px solid var(--border);position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.c1::before{background:#4f46e5}.kpi.c2::before{background:#06b6d4}.kpi.c3::before{background:#10b981}.kpi.c4::before{background:#f59e0b}.kpi.c5::before{background:#f43f5e}.kpi.c6::before{background:#8b5cf6}
+.kpi-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.kpi-val{font-size:1.7rem;font-weight:700;line-height:1;margin:7px 0 5px}
+.kpi-sub{font-size:.73rem;display:flex;align-items:center;gap:4px}
+.kpi-sub.up{color:#10b981}.kpi-sub.dn{color:#ef4444}.kpi-sub.neu{color:var(--muted)}
+.sec{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:18px 0 10px}
+.row{display:grid;gap:14px;margin-bottom:14px}
+.row.r1{grid-template-columns:1fr}
+.row.r2{grid-template-columns:2fr 1fr}
+.row.r3{grid-template-columns:1fr 1fr}
+.card{background:var(--card);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.card-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.card-title{font-size:.88rem;font-weight:700}
+.card-sub{font-size:.7rem;color:var(--muted);margin-top:2px}
+.leg{display:flex;gap:10px;flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:4px;font-size:.7rem;color:var(--muted)}
+.ld{width:8px;height:8px;border-radius:50%}.ll{width:16px;height:2px}
+.cw{position:relative}
+table{width:100%;border-collapse:collapse;font-size:.81rem}
+thead th{background:#f7f8fa;padding:9px 13px;text-align:left;font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:#f8faff}
+tbody td{padding:9px 13px}
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:600}
+.tag.g{background:#dcfce7;color:#166534}.tag.y{background:#fef9c3;color:#854d0e}.tag.r{background:#fee2e2;color:#991b1b}.tag.n{background:#f1f5f9;color:#475569}
+.gu{color:#ef4444}.gd{color:#10b981}
+.ins-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:16px}
+.ins{background:var(--card);border-radius:10px;padding:13px 15px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.ins-ico{font-size:1.1rem;flex-shrink:0;margin-top:1px}
+.ins-t{font-size:.75rem;font-weight:700}.ins-b{font-size:.7rem;color:var(--muted);margin-top:2px;line-height:1.4}
+.tow{overflow-x:auto}
+@media(max-width:900px){.main{padding:14px}.row.r2,.row.r3{grid-template-columns:1fr}.header{padding:14px}.header h1{font-size:1.1rem}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>📱 Palash UAC Campaign Dashboard</h1>
+    <p>Mosaic Wellness · Hair &amp; Beard · May 2025 – Apr 2026</p>
+  </div>
+  <div class="header-right">
+    <div class="btn-group" id="fbtns">
+      <button onclick="setF(7)" id="f7">7D</button>
+      <button onclick="setF(30)" id="f30" class="active">30D</button>
+      <button onclick="setF(90)" id="f90">90D</button>
+      <button onclick="setF(0)" id="f0">All</button>
+    </div>
+    <div class="badge-live"><div class="dot"></div><span>340 days of data</span></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sec">Key Performance Indicators</div>
+  <div class="kpi-grid">
+    <div class="kpi c1"><div class="kpi-label">Total Spends</div><div class="kpi-val" id="kS">—</div><div class="kpi-sub" id="kSs">—</div></div>
+    <div class="kpi c2"><div class="kpi-label">Total NCs</div><div class="kpi-val" id="kN">—</div><div class="kpi-sub" id="kNs">—</div></div>
+    <div class="kpi c3"><div class="kpi-label">Avg CAC</div><div class="kpi-val" id="kC">—</div><div class="kpi-sub" id="kCs">—</div></div>
+    <div class="kpi c4"><div class="kpi-label">Best CAC Day</div><div class="kpi-val" id="kBC">—</div><div class="kpi-sub neu" id="kBCd">—</div></div>
+    <div class="kpi c5"><div class="kpi-label">Worst CAC Day</div><div class="kpi-val" id="kWC">—</div><div class="kpi-sub neu" id="kWCd">—</div></div>
+    <div class="kpi c6"><div class="kpi-label">Avg Daily NCs</div><div class="kpi-val" id="kAN">—</div><div class="kpi-sub neu" id="kANs">—</div></div>
+  </div>
+
+  <div class="sec">Daily Trends</div>
+  <div class="row r1">
+    <div class="card">
+      <div class="card-hd">
+        <div><div class="card-title">NCs &amp; CAC Trend</div><div class="card-sub">Bars = NCs · Red line = CAC · Orange dashed = 7-day rolling avg CAC</div></div>
+        <div class="leg">
+          <div class="li"><div class="ld" style="background:#4f46e5"></div>NCs</div>
+          <div class="li"><div class="ll" style="background:#ef4444"></div>CAC</div>
+          <div class="li"><div class="ll" style="background:#f97316;border-top:2px dashed #f97316;height:0"></div>7D Avg</div>
+        </div>
+      </div>
+      <div class="cw" style="height:230px"><canvas id="cMain"></canvas></div>
+    </div>
+  </div>
+
+  <div class="row r2">
+    <div class="card">
+      <div class="card-hd">
+        <div><div class="card-title">Daily Spend — Hair vs Beard</div><div class="card-sub">Stacked daily spend by campaign category (₹)</div></div>
+        <div class="leg"><div class="li"><div class="ld" style="background:#4f46e5"></div>Hair</div><div class="li"><div class="ld" style="background:#f59e0b"></div>Beard</div></div>
+      </div>
+      <div class="cw" style="height:210px"><canvas id="cSplit"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><div class="card-title">Spend Mix</div><div class="card-sub">Total spend share by campaign</div></div></div>
+      <div class="cw" style="height:210px"><canvas id="cPie"></canvas></div>
+    </div>
+  </div>
+
+  <div class="sec">Monthly &amp; Pattern Analysis</div>
+  <div class="row r3">
+    <div class="card">
+      <div class="card-hd"><div><div class="card-title">Monthly Performance</div><div class="card-sub">NCs per month with avg CAC line</div></div></div>
+      <div class="cw" style="height:210px"><canvas id="cMon"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><div class="card-title">Day-of-Week Patterns</div><div class="card-sub">Average NCs and CAC by weekday</div></div></div>
+      <div class="cw" style="height:210px"><canvas id="cDow"></canvas></div>
+    </div>
+  </div>
+
+  <div class="sec">Insights</div>
+  <div class="ins-row" id="insRow"></div>
+
+  <div class="sec">Recent Performance — Last 30 Days</div>
+  <div class="card" style="margin-bottom:32px">
+    <div class="tow"><table><thead><tr><th>Date</th><th>Day</th><th>NCs</th><th>Spends ₹</th><th>CAC ₹</th><th>7D Avg CAC</th><th>Rating</th><th>NCs vs 7D Avg</th></tr></thead><tbody id="tBody"></tbody></table></div>
+  </div>
+</div>
+
+<script>
+// ── Embedded data ──────────────────────────────────────────────────────────
+const RAW = [["01/05/2025", 67, 41163, 556], ["02/05/2025", 55, 41054, 748], ["03/05/2025", 51, 38159, 744], ["04/05/2025", 51, 41890, 817], ["05/05/2025", 50, 35085, 709], ["06/05/2025", 59, 36219, 619], ["07/05/2025", 46, 32520, 709], ["08/05/2025", 75, 39916, 534], ["09/05/2025", 54, 46867, 868], ["10/05/2025", 64, 45257, 708], ["11/05/2025", 81, 46987, 580], ["12/05/2025", 60, 47862, 794], ["13/05/2025", 55, 44207, 805], ["14/05/2025", 55, 49812, 907], ["15/05/2025", 67, 55774, 837], ["16/05/2025", 86, 50838, 588], ["17/05/2025", 68, 46833, 685], ["18/05/2025", 131, 62051, 475], ["19/05/2025", 76, 53037, 702], ["20/05/2025", 63, 46161, 733], ["21/05/2025", 68, 48781, 723], ["22/05/2025", 68, 42295, 627], ["23/05/2025", 48, 51482, 1079], ["24/05/2025", 51, 45718, 891], ["25/05/2025", 50, 45679, 906], ["26/05/2025", 34, 44208, 1293], ["27/05/2025", 50, 40952, 827], ["28/05/2025", 80, 52388, 654], ["29/05/2025", 58, 45161, 784], ["30/05/2025", 44, 38157, 865], ["31/05/2025", 57, 35574, 627], ["01/06/2025", 113, 45705, 403], ["02/06/2025", 64, 43535, 681], ["03/06/2025", 77, 38296, 501], ["04/06/2025", 74, 47595, 645], ["05/06/2025", 65, 56162, 867], ["06/06/2025", 93, 55982, 604], ["07/06/2025", 71, 52027, 732], ["08/06/2025", 86, 54272, 628], ["09/06/2025", 85, 41659, 492], ["10/06/2025", 77, 41613, 544], ["11/06/2025", 80, 43719, 546], ["12/06/2025", 59, 42633, 718], ["13/06/2025", 51, 42270, 824], ["14/06/2025", 65, 40120, 619], ["15/06/2025", 69, 41049, 592], ["16/06/2025", 75, 40988, 549], ["17/06/2025", 52, 41247, 790], ["18/06/2025", 70, 50732, 723], ["19/06/2025", 81, 41054, 507], ["20/06/2025", 60, 39816, 660], ["21/06/2025", 58, 48011, 834], ["22/06/2025", 93, 47343, 511], ["23/06/2025", 75, 40900, 548], ["24/06/2025", 145, 60609, 418], ["25/06/2025", 62, 55724, 897], ["26/06/2025", 64, 44486, 696], ["27/06/2025", 45, 40144, 892], ["28/06/2025", 55, 46208, 842], ["29/06/2025", 59, 43548, 744], ["30/06/2025", 99, 50801, 513], ["01/07/2025", 60, 55163, 915], ["02/07/2025", 64, 51987, 814], ["03/07/2025", 76, 53867, 713], ["04/07/2025", 64, 51041, 799], ["05/07/2025", 76, 52256, 691], ["06/07/2025", 84, 58114, 694], ["07/07/2025", 68, 44480, 659], ["08/07/2025", 95, 46912, 492], ["09/07/2025", 77, 48186, 630], ["10/07/2025", 69, 47214, 681], ["11/07/2025", 65, 50859, 785], ["12/07/2025", 78, 51717, 661], ["13/07/2025", 91, 62920, 692], ["14/07/2025", 58, 53367, 927], ["15/07/2025", 79, 53157, 671], ["16/07/2025", 55, 45310, 825], ["17/07/2025", 77, 52045, 680], ["18/07/2025", 51, 40650, 792], ["19/07/2025", 60, 46928, 778], ["20/07/2025", 70, 50032, 713], ["21/07/2025", 84, 40967, 489], ["22/07/2025", 60, 39908, 662], ["23/07/2025", 67, 36838, 553], ["24/07/2025", 69, 38602, 557], ["25/07/2025", 68, 40549, 593], ["26/07/2025", 83, 41155, 497], ["27/07/2025", 77, 44413, 574], ["28/07/2025", 95, 43444, 455], ["29/07/2025", 56, 42177, 756], ["30/07/2025", 63, 40486, 643], ["31/07/2025", 70, 41574, 592], ["01/08/2025", 61, 47500, 776], ["02/08/2025", 81, 49981, 617], ["03/08/2025", 85, 59188, 700], ["04/08/2025", 55, 47792, 871], ["05/08/2025", 68, 50926, 754], ["06/08/2025", 55, 46965, 855], ["07/08/2025", 56, 43147, 773], ["08/08/2025", 82, 45473, 555], ["09/08/2025", 109, 44394, 408], ["10/08/2025", 80, 55249, 690], ["11/08/2025", 86, 60529, 708], ["12/08/2025", 79, 47064, 594], ["13/08/2025", 100, 43489, 435], ["14/08/2025", 68, 45868, 671], ["15/08/2025", 83, 50633, 612], ["16/08/2025", 72, 52713, 732], ["17/08/2025", 81, 56276, 695], ["18/08/2025", 73, 47497, 652], ["19/08/2025", 68, 48479, 709], ["20/08/2025", 72, 42004, 583], ["21/08/2025", 84, 45264, 541], ["22/08/2025", 66, 43835, 667], ["23/08/2025", 60, 50053, 830], ["24/08/2025", 77, 57952, 749], ["25/08/2025", 80, 50450, 630], ["26/08/2025", 61, 35102, 574], ["27/08/2025", 35, 41248, 1175], ["28/08/2025", 0, 43645, 0], ["29/08/2025", 0, 38611, 0], ["30/08/2025", 0, 44391, 0], ["31/08/2025", 0, 53860, 0], ["01/09/2025", 54, 49530, 917], ["02/09/2025", 77, 42820, 560], ["03/09/2025", 83, 44810, 541], ["04/09/2025", 76, 40563, 537], ["05/09/2025", 59, 46897, 790], ["06/09/2025", 67, 50214, 754], ["07/09/2025", 96, 65427, 679], ["08/09/2025", 56, 52583, 942], ["09/09/2025", 74, 53944, 731], ["10/09/2025", 77, 48490, 626], ["11/09/2025", 78, 49764, 636], ["12/09/2025", 84, 45302, 541], ["13/09/2025", 89, 49201, 552], ["14/09/2025", 77, 53360, 698], ["15/09/2025", 105, 65732, 624], ["16/09/2025", 63, 51727, 821], ["17/09/2025", 70, 57208, 815], ["18/09/2025", 65, 46993, 725], ["19/09/2025", 66, 54141, 824], ["20/09/2025", 62, 50142, 807], ["21/09/2025", 105, 48086, 457], ["22/09/2025", 48, 39089, 819], ["23/09/2025", 29, 39578, 1374], ["24/09/2025", 51, 46108, 899], ["25/09/2025", 52, 44229, 847], ["26/09/2025", 60, 44925, 745], ["27/09/2025", 52, 33514, 642], ["28/09/2025", 45, 38435, 854], ["29/09/2025", 59, 40650, 684], ["30/09/2025", 53, 41633, 784], ["01/10/2025", 45, 42860, 952], ["02/10/2025", 62, 51477, 829], ["03/10/2025", 52, 46648, 894], ["04/10/2025", 72, 50824, 706], ["05/10/2025", 72, 66292, 921], ["06/10/2025", 63, 51413, 816], ["07/10/2025", 75, 47991, 642], ["08/10/2025", 75, 45570, 610], ["09/10/2025", 67, 56826, 853], ["10/10/2025", 93, 58184, 628], ["11/10/2025", 77, 59784, 772], ["12/10/2025", 67, 76519, 1149], ["13/10/2025", 72, 61263, 851], ["14/10/2025", 64, 45862, 718], ["15/10/2025", 55, 46954, 855], ["16/10/2025", 82, 45806, 559], ["17/10/2025", 41, 42719, 1055], ["18/10/2025", 39, 41652, 1076], ["19/10/2025", 48, 41849, 877], ["20/10/2025", 44, 37067, 841], ["21/10/2025", 64, 39369, 616], ["22/10/2025", 67, 42125, 633], ["23/10/2025", 74, 37818, 512], ["24/10/2025", 52, 42945, 823], ["25/10/2025", 65, 46632, 720], ["26/10/2025", 71, 54117, 761], ["27/10/2025", 68, 47165, 690], ["28/10/2025", 65, 41686, 643], ["29/10/2025", 75, 48832, 654], ["30/10/2025", 55, 46518, 847], ["31/10/2025", 52, 46699, 895], ["01/11/2025", 70, 53761, 766], ["02/11/2025", 108, 59722, 553], ["03/11/2025", 95, 49445, 523], ["04/11/2025", 85, 54627, 646], ["05/11/2025", 104, 52231, 500], ["06/11/2025", 76, 58483, 774], ["07/11/2025", 92, 54312, 592], ["08/11/2025", 91, 52544, 578], ["09/11/2025", 91, 64961, 715], ["10/11/2025", 80, 61144, 763], ["11/11/2025", 90, 57252, 636], ["12/11/2025", 67, 60618, 910], ["13/11/2025", 12, 53602, 4581], ["14/11/2025", 62, 44834, 722], ["15/11/2025", 71, 53078, 747], ["16/11/2025", 100, 57955, 580], ["17/11/2025", 102, 53656, 528], ["18/11/2025", 90, 46968, 522], ["19/11/2025", 76, 43773, 579], ["20/11/2025", 89, 45089, 506], ["21/11/2025", 80, 53212, 664], ["22/11/2025", 87, 55961, 641], ["23/11/2025", 92, 61359, 668], ["24/11/2025", 75, 57760, 773], ["25/11/2025", 6, 46375, 7361], ["26/11/2025", 0, 51233, 0], ["27/11/2025", 0, 45381, 0], ["28/11/2025", 0, 48701, 0], ["29/11/2025", 0, 55392, 0], ["30/11/2025", 0, 59596, 0], ["01/12/2025", 97, 60180, 619], ["02/12/2025", 67, 61423, 922], ["03/12/2025", 86, 58234, 681], ["04/12/2025", 75, 57399, 768], ["05/12/2025", 67, 54955, 825], ["06/12/2025", 68, 56346, 835], ["07/12/2025", 131, 68666, 523], ["08/12/2025", 106, 58434, 550], ["09/12/2025", 71, 55610, 782], ["10/12/2025", 50, 46249, 918], ["11/12/2025", 77, 58763, 759], ["12/12/2025", 81, 62422, 771], ["13/12/2025", 115, 64841, 563], ["14/12/2025", 104, 68045, 652], ["15/12/2025", 75, 53386, 715], ["16/12/2025", 80, 55324, 691], ["17/12/2025", 85, 57250, 677], ["18/12/2025", 76, 55143, 729], ["19/12/2025", 75, 51875, 694], ["20/12/2025", 74, 43386, 588], ["21/12/2025", 95, 50980, 539], ["22/12/2025", 71, 53066, 746], ["23/12/2025", 80, 50985, 637], ["24/12/2025", 132, 54874, 415], ["25/12/2025", 94, 55811, 596], ["26/12/2025", 89, 51180, 574], ["27/12/2025", 68, 50857, 744], ["28/12/2025", 79, 58279, 736], ["29/12/2025", 17, 53687, 3140], ["30/12/2025", 0, 45558, 0], ["31/12/2025", 0, 41346, 0], ["01/01/2026", 119, 50164, 422], ["02/01/2026", 81, 59215, 731], ["03/01/2026", 109, 65303, 600], ["04/01/2026", 117, 69962, 598], ["05/01/2026", 84, 66938, 800], ["06/01/2026", 57, 53939, 951], ["07/01/2026", 95, 50957, 534], ["08/01/2026", 82, 53005, 647], ["09/01/2026", 110, 50607, 461], ["10/01/2026", 84, 51963, 621], ["11/01/2026", 95, 57224, 600], ["12/01/2026", 75, 48118, 644], ["13/01/2026", 80, 49797, 622], ["14/01/2026", 86, 47378, 554], ["15/01/2026", 93, 51378, 554], ["16/01/2026", 91, 46444, 511], ["17/01/2026", 117, 52330, 447], ["18/01/2026", 86, 56271, 651], ["19/01/2026", 98, 55203, 563], ["20/01/2026", 77, 50195, 656], ["21/01/2026", 68, 57000, 844], ["22/01/2026", 59, 58531, 985], ["23/01/2026", 99, 51858, 524], ["24/01/2026", 90, 56281, 625], ["25/01/2026", 84, 60395, 722], ["26/01/2026", 78, 55536, 709], ["27/01/2026", 96, 48403, 503], ["28/01/2026", 80, 52701, 658], ["29/01/2026", 58, 49114, 853], ["30/01/2026", 77, 39958, 516], ["31/01/2026", 84, 41816, 500], ["01/02/2026", 125, 49409, 395], ["02/02/2026", 81, 42792, 528], ["03/02/2026", 104, 44034, 425], ["04/02/2026", 123, 45762, 371], ["05/02/2026", 104, 48270, 466], ["06/02/2026", 76, 45867, 607], ["07/02/2026", 89, 43371, 487], ["08/02/2026", 124, 57761, 465], ["09/02/2026", 92, 47690, 520], ["10/02/2026", 96, 49429, 513], ["11/02/2026", 77, 51542, 674], ["12/02/2026", 102, 53640, 527], ["13/02/2026", 119, 56403, 475], ["14/02/2026", 102, 52852, 520], ["15/02/2026", 77, 51278, 663], ["16/02/2026", 88, 56018, 635], ["17/02/2026", 82, 59210, 723], ["18/02/2026", 103, 60047, 585], ["19/02/2026", 96, 63218, 656], ["20/02/2026", 83, 59279, 716], ["21/02/2026", 98, 63497, 647], ["22/02/2026", 100, 73371, 734], ["23/02/2026", 119, 61172, 515], ["24/02/2026", 109, 56478, 519], ["25/02/2026", 81, 58552, 723], ["26/02/2026", 81, 56413, 696], ["27/02/2026", 92, 68079, 742], ["28/02/2026", 95, 63243, 669], ["01/03/2026", 114, 67983, 595], ["02/03/2026", 112, 61837, 554], ["03/03/2026", 104, 61670, 591], ["04/03/2026", 70, 55043, 784], ["05/03/2026", 88, 57839, 656], ["06/03/2026", 110, 60537, 551], ["07/03/2026", 95, 67978, 719], ["08/03/2026", 104, 60442, 584], ["09/03/2026", 104, 67339, 645], ["10/03/2026", 94, 69080, 738], ["11/03/2026", 93, 71283, 769], ["12/03/2026", 77, 65733, 849], ["13/03/2026", 98, 62985, 642], ["14/03/2026", 89, 71021, 797], ["15/03/2026", 107, 77744, 726], ["16/03/2026", 84, 59650, 713], ["17/03/2026", 66, 69849, 1063], ["18/03/2026", 98, 58820, 600], ["19/03/2026", 76, 69019, 913], ["20/03/2026", 115, 73668, 639], ["21/03/2026", 109, 69237, 636], ["22/03/2026", 96, 77990, 810], ["23/03/2026", 68, 61515, 899], ["24/03/2026", 87, 60594, 694], ["25/03/2026", 100, 63456, 635], ["26/03/2026", 120, 73587, 615], ["27/03/2026", 76, 70757, 936], ["28/03/2026", 70, 65541, 934], ["29/03/2026", 121, 80534, 668], ["30/03/2026", 103, 70819, 690], ["31/03/2026", 113, 71935, 639], ["01/04/2026", 98, 87413, 891], ["02/04/2026", 104, 86977, 840], ["03/04/2026", 113, 61122, 539], ["04/04/2026", 112, 61422, 550], ["05/04/2026", 92, 77304, 842]];
+const HAIR = [31768, 30433, 30467, 30884, 27278, 29729, 28221, 30631, 39608, 35383, 39907, 41977, 40363, 42569, 41779, 36312, 36299, 49750, 37404, 37952, 42796, 35528, 42884, 39639, 40482, 39987, 38032, 49672, 41878, 33271, 31314, 40991, 38953, 35252, 43257, 49659, 52016, 49105, 49277, 38312, 38360, 39785, 38250, 37681, 34949, 36535, 37710, 37290, 46342, 37592, 36749, 41735, 41235, 36477, 56968, 53909, 35126, 29056, 35881, 33592, 41520, 45221, 41904, 44927, 42716, 46448, 51355, 37407, 37566, 40854, 36881, 40154, 38829, 44379, 37840, 41696, 33989, 41810, 32035, 37411, 41127, 31025, 30809, 28124, 29621, 32323, 33530, 35083, 33431, 33075, 31060, 32068, 37811, 40166, 50040, 38202, 40005, 38496, 34906, 33645, 33512, 45663, 48979, 35206, 32965, 36471, 41097, 43024, 45820, 37425, 39288, 33151, 37735, 34180, 39701, 46346, 41882, 27728, 32808, 36071, 31905, 35984, 41339, 40839, 34017, 35229, 28779, 34606, 38599, 51490, 40951, 41759, 40835, 40761, 34630, 34937, 33464, 46604, 38229, 45763, 34218, 39371, 35916, 33541, 26767, 25768, 31226, 31998, 32687, 23376, 27452, 25845, 33798, 36515, 43606, 39053, 44264, 52112, 41370, 41349, 40918, 46013, 45437, 45460, 56516, 45239, 35734, 36521, 35506, 27372, 26046, 27112, 24002, 26314, 33392, 31497, 28750, 31620, 41580, 38557, 33920, 37130, 35997, 38399, 45841, 51790, 41825, 46515, 43283, 53101, 47981, 46715, 57414, 53552, 50716, 54456, 48260, 39463, 40971, 44042, 42331, 38261, 35126, 36404, 34452, 40902, 47322, 40319, 34276, 38462, 33927, 40460, 42213, 44868, 49312, 50222, 48483, 48746, 46945, 46047, 57676, 47650, 46758, 38335, 50284, 54997, 57893, 60096, 45782, 49367, 50360, 49130, 45872, 39333, 46683, 46797, 45522, 49323, 46057, 38429, 41435, 49190, 45762, 39316, 34972, 44841, 43935, 44207, 53420, 52558, 43995, 43865, 42145, 39719, 42132, 46905, 39206, 40117, 41447, 44660, 39968, 45956, 48812, 49071, 44473, 49899, 51354, 45557, 48369, 53523, 49824, 42391, 47490, 41985, 36210, 36409, 41180, 35643, 36156, 35737, 40975, 38644, 39968, 52783, 43376, 43426, 42090, 44802, 49050, 44834, 43517, 49844, 50387, 45435, 46366, 46911, 50339, 58994, 49772, 44715, 49932, 42935, 44234, 43030, 51386, 46471, 51499, 44305, 46132, 47639, 55352, 47966, 48583, 52974, 57275, 53992, 54498, 55947, 62645, 50770, 59090, 48969, 55878, 59742, 57308, 61351, 51240, 53517, 54175, 58506, 55804, 56792, 71057, 51754, 56121, 63875, 71895, 23338, 12352, 11806];
+const BEARD = [9394, 10621, 7692, 11006, 7807, 6489, 4299, 9285, 7259, 9874, 7080, 5885, 3844, 7243, 13995, 14526, 10533, 12302, 15634, 8209, 5985, 6767, 8598, 6080, 5197, 4221, 2920, 2716, 3283, 4885, 4261, 4713, 4582, 3045, 4337, 6503, 3965, 2922, 4995, 3346, 3253, 3935, 4384, 4589, 5171, 4513, 3277, 3957, 4390, 3462, 3067, 6276, 6109, 4423, 3641, 1815, 9360, 11088, 10327, 9955, 9281, 9943, 10084, 8939, 8324, 5808, 6758, 7074, 9346, 7331, 10333, 10704, 12888, 18542, 15527, 11461, 11321, 10235, 8615, 9516, 8905, 9942, 9100, 8715, 8981, 8226, 7625, 9330, 10013, 9102, 9426, 9506, 9689, 9815, 9148, 9590, 10920, 8469, 8241, 11828, 10883, 9585, 11550, 11859, 10524, 9397, 9536, 9689, 10457, 10072, 9191, 8853, 7528, 9655, 10352, 11606, 8568, 7374, 8440, 7575, 6706, 8407, 12521, 8690, 8803, 9580, 11784, 12291, 11615, 13937, 11632, 12185, 7655, 9003, 10672, 14264, 19896, 19128, 13498, 11445, 12775, 14770, 14226, 14545, 12322, 13810, 14882, 12231, 12238, 10138, 10983, 14806, 7835, 6345, 7871, 7595, 6560, 14181, 10043, 6641, 4652, 10813, 12747, 14324, 20003, 16023, 10128, 10433, 10299, 15347, 15605, 14737, 13064, 13054, 8733, 6322, 14195, 15012, 12537, 8608, 7766, 11702, 10521, 8299, 7920, 7932, 7620, 8113, 8948, 5382, 6330, 5830, 7546, 7592, 6536, 6162, 5341, 5371, 12107, 13913, 11325, 8706, 8647, 8684, 18760, 15059, 14037, 17441, 12099, 12771, 11454, 8241, 13179, 14728, 10868, 11200, 9751, 8654, 8010, 10299, 10990, 10784, 8852, 7913, 8480, 7425, 6947, 7949, 7604, 5957, 6890, 6013, 6003, 4053, 4297, 6269, 5464, 5550, 9754, 12751, 9422, 9088, 7925, 6243, 6373, 5324, 15280, 21097, 16542, 14380, 9943, 7092, 10860, 10889, 9831, 10320, 8912, 9679, 5931, 6717, 6476, 6374, 7459, 6132, 5722, 7101, 7177, 6301, 7913, 6872, 5711, 6012, 5212, 7130, 3748, 5407, 8229, 7149, 7878, 10025, 7295, 7223, 3403, 4979, 4314, 6003, 9452, 8838, 7352, 8018, 7761, 6174, 8823, 14612, 16852, 12368, 13158, 14377, 11400, 11763, 8620, 13477, 23845, 20213, 16596, 15366, 10170, 10738, 11707, 12898, 12626, 12476, 18755, 16106, 14008, 11741, 8487, 15074, 15099, 8879, 10759, 9851, 13142, 13925, 11929, 16638, 10276, 7077, 9281, 15081, 14953, 8749, 9478, 19065, 15813, 23538, 15081, 37784, 49069, 65498];
+
+// ── Parse dates & build allDaily ──────────────────────────────────────────
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function parseDate(s) {
+  const [d,m,y] = s.split('/');
+  return new Date(+y, +m-1, +d);
+}
+function dLabel(d) { return d.getDate().toString().padStart(2,'0')+' '+MONTHS[d.getMonth()]; }
+function mKey(d) { return MONTHS[d.getMonth()]+' '+String(d.getFullYear()).slice(2); }
+
+const allDaily = RAW.map(r => ({date:parseDate(r[0]), ncs:r[1], spends:r[2], cac:r[3]}));
+
+// Align cost arrays with daily dates
+// (HAIR/BEARD arrays correspond 1:1 with allDaily index by construction)
+
+// ── State ──────────────────────────────────────────────────────────────────
+let activeF = 30;
+const charts = {};
+
+function setF(d) {
+  activeF = d;
+  ['f7','f30','f90','f0'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('f'+d).classList.add('active');
+  render();
+}
+
+function filterD(days) {
+  if (!days) return allDaily;
+  const cut = new Date(); cut.setDate(cut.getDate() - days);
+  return allDaily.filter(r => r.date >= cut);
+}
+
+function rolling7(arr, i, key) {
+  const sl = arr.slice(Math.max(0,i-6), i+1).filter(x => x[key]>0);
+  return sl.length ? sl.reduce((s,x)=>s+x[key],0)/sl.length : 0;
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────
+function renderKPIs(curr, prev) {
+  const ts = curr.reduce((s,d)=>s+d.spends,0);
+  const tn = curr.reduce((s,d)=>s+d.ncs,0);
+  const vc = curr.filter(d=>d.cac>0);
+  const ac = vc.length ? vc.reduce((s,d)=>s+d.cac,0)/vc.length : 0;
+  const best = vc.reduce((m,d)=>d.cac<m.cac?d:m, vc[0]||{cac:0,date:new Date()});
+  const worst = vc.reduce((m,d)=>d.cac>m.cac?d:m, vc[0]||{cac:0,date:new Date()});
+  const an = curr.length ? tn/curr.length : 0;
+
+  const ps = prev.reduce((s,d)=>s+d.spends,0);
+  const pn = prev.reduce((s,d)=>s+d.ncs,0);
+  const pvc = prev.filter(d=>d.cac>0);
+  const pac = pvc.length ? pvc.reduce((s,d)=>s+d.cac,0)/pvc.length : 0;
+
+  set('kS','₹'+fmt(ts)); set('kN',tn.toLocaleString()); set('kC','₹'+Math.round(ac));
+  set('kBC','₹'+Math.round(best.cac||0)); set('kBCd', best.date?dLabel(best.date):'—');
+  set('kWC','₹'+Math.round(worst.cac||0)); set('kWCd', worst.date?dLabel(worst.date):'—');
+  set('kAN', Math.round(an).toString()); set('kANs', curr.length+' days in period');
+
+  if (prev.length) {
+    setVs('kSs',ts,ps,'spend',false);
+    setVs('kNs',tn,pn,'NCs vs prev',false);
+    setVs('kCs',ac,pac,'CAC vs prev',true);
+  } else {
+    ['kSs','kNs','kCs'].forEach(id=>setEl(id,'neu','All-time data'));
+  }
+}
+
+function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function setEl(id,cls,txt){const e=document.getElementById(id);if(e){e.className='kpi-sub '+cls;e.textContent=txt;}}
+function setVs(id,curr,prev,lbl,lower){
+  if(!prev) return;
+  const d=curr-prev, p=((d/prev)*100).toFixed(1), good=lower?d<0:d>0;
+  setEl(id, good?'up':'dn', (d>0?'▲ +':'▼ ')+Math.abs(p)+'% '+lbl);
+}
+function fmt(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':String(Math.round(n));}
+
+function prevPeriod(days) {
+  if(!days) return [];
+  const cut=new Date(); cut.setDate(cut.getDate()-days);
+  const cut2=new Date(); cut2.setDate(cut2.getDate()-days*2);
+  return allDaily.filter(d=>d.date>=cut2&&d.date<cut);
+}
+
+// ── Chart helpers ─────────────────────────────────────────────────────────
+function dc(id){
+  const ex=Chart.getChart(id); if(ex)ex.destroy();
+  const el=document.getElementById(id);
+  if(el){const p=el.parentNode;p.removeChild(el);const c=document.createElement('canvas');c.id=id;p.appendChild(c);}
+}
+const xCfg={grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10},color:'#94a3b8',maxRotation:0}};
+const yL={position:'left',grid:{color:'#f1f5f9'},ticks:{font:{size:10},color:'#94a3b8'}};
+const yR={position:'right',grid:{display:false},ticks:{font:{size:10},color:'#94a3b8',callback:v=>'₹'+v.toLocaleString()}};
+
+// ── Main trend ────────────────────────────────────────────────────────────
+function renderMain(data) {
+  const labels=data.map(d=>dLabel(d.date));
+  const ncs=data.map(d=>d.ncs);
+  const cac=data.map(d=>d.cac>0?d.cac:null);
+  const avg=data.map((_,i)=>{const v=rolling7(data,i,'cac');return v>0?Math.round(v):null;});
+  dc('cMain');
+  new Chart(document.getElementById('cMain'),{
+    data:{labels,datasets:[
+      {type:'bar',label:'NCs',data:ncs,backgroundColor:'rgba(79,70,229,.7)',borderRadius:2,yAxisID:'y',order:2},
+      {type:'line',label:'CAC',data:cac,borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.3,yAxisID:'y2',order:1,spanGaps:true},
+      {type:'line',label:'7D Avg',data:avg,borderColor:'#f97316',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:0,tension:.4,yAxisID:'y2',order:0,spanGaps:true}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label==='NCs'?' NCs: '+ctx.parsed.y:' '+ctx.dataset.label+': ₹'+(ctx.parsed.y||0).toLocaleString()}}},
+      scales:{x:xCfg,y:{...yL,title:{display:true,text:'NCs',font:{size:10},color:'#94a3b8'}},y2:{...yR,title:{display:true,text:'CAC ₹',font:{size:10},color:'#94a3b8'}}}
+    }
+  });
+}
+
+// ── Spend split ───────────────────────────────────────────────────────────
+function renderSplit(data, idxs) {
+  const labels=data.map(d=>dLabel(d.date));
+  const hair=idxs.map(i=>HAIR[i]);
+  const beard=idxs.map(i=>BEARD[i]);
+  dc('cSplit');
+  new Chart(document.getElementById('cSplit'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Hair',data:hair,backgroundColor:'rgba(79,70,229,.8)',borderRadius:2,stack:'s'},
+      {label:'Beard',data:beard,backgroundColor:'rgba(245,158,11,.8)',borderRadius:2,stack:'s'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': ₹'+(ctx.parsed.y||0).toLocaleString()}}},
+      scales:{x:{...xCfg,stacked:true},y:{stacked:true,...yL,ticks:{...yL.ticks,callback:v=>'₹'+fmt(v)},title:{display:false}}}
+    }
+  });
+}
+
+// ── Pie ───────────────────────────────────────────────────────────────────
+function renderPie(idxs) {
+  const hTotal=idxs.reduce((s,i)=>s+HAIR[i],0);
+  const bTotal=idxs.reduce((s,i)=>s+BEARD[i],0);
+  dc('cPie');
+  new Chart(document.getElementById('cPie'),{
+    type:'doughnut',
+    data:{labels:['Hair','Beard'],datasets:[{data:[Math.round(hTotal),Math.round(bTotal)],backgroundColor:['#4f46e5','#f59e0b'],borderWidth:3,borderColor:'#fff',hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:11},color:'#64748b',padding:10,usePointStyle:true,pointStyleWidth:8}},
+        tooltip:{callbacks:{label:ctx=>{const t=hTotal+bTotal;return ' ₹'+ctx.parsed.toLocaleString()+' ('+(ctx.parsed/t*100).toFixed(1)+'%)';}}}
+      }
+    }
+  });
+}
+
+// ── Monthly ───────────────────────────────────────────────────────────────
+function renderMonthly() {
+  const m={};
+  allDaily.forEach(d=>{
+    const k=mKey(d.date);
+    if(!m[k])m[k]={ncs:0,cac:0,cnt:0,cc:0};
+    m[k].ncs+=d.ncs; m[k].cnt++;
+    if(d.cac>0){m[k].cac+=d.cac;m[k].cc++;}
+  });
+  const keys=Object.keys(m);
+  const ncs=keys.map(k=>m[k].ncs);
+  const cac=keys.map(k=>m[k].cc?Math.round(m[k].cac/m[k].cc):0);
+  dc('cMon');
+  new Chart(document.getElementById('cMon'),{
+    data:{labels:keys,datasets:[
+      {type:'bar',label:'NCs',data:ncs,backgroundColor:'rgba(6,182,212,.75)',borderRadius:4,yAxisID:'y',order:2},
+      {type:'line',label:'Avg CAC',data:cac,borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y2',order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{size:10},color:'#64748b',usePointStyle:true}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label==='NCs'?' NCs: '+ctx.parsed.y:' Avg CAC: ₹'+ctx.parsed.y.toLocaleString()}}},
+      scales:{x:xCfg,y:{...yL,title:{display:true,text:'NCs',font:{size:10},color:'#94a3b8'}},y2:{...yR,title:{display:true,text:'CAC',font:{size:10},color:'#94a3b8'}}}
+    }
+  });
+}
+
+// ── Day of week ───────────────────────────────────────────────────────────
+function renderDOW() {
+  const dow=Array.from({length:7},(_,i)=>{return{day:DAYS[i],n:0,c:0,nc:0,cnt:0};});
+  allDaily.forEach(d=>{const i=d.date.getDay();dow[i].n+=d.ncs;dow[i].cnt++;if(d.cac>0){dow[i].c+=d.cac;dow[i].nc++;}});
+  dc('cDow');
+  new Chart(document.getElementById('cDow'),{
+    data:{labels:dow.map(d=>d.day),datasets:[
+      {type:'bar',label:'Avg NCs',data:dow.map(d=>d.cnt?+(d.n/d.cnt).toFixed(1):0),backgroundColor:'rgba(139,92,246,.75)',borderRadius:4,yAxisID:'y',order:2},
+      {type:'line',label:'Avg CAC',data:dow.map(d=>d.nc?Math.round(d.c/d.nc):0),borderColor:'#f97316',backgroundColor:'transparent',borderWidth:2,pointRadius:4,tension:.3,yAxisID:'y2',order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{size:10},color:'#64748b',usePointStyle:true}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label.includes('NCs')?' Avg NCs: '+ctx.parsed.y:' Avg CAC: ₹'+ctx.parsed.y.toLocaleString()}}},
+      scales:{x:{...xCfg,ticks:{...xCfg.ticks,maxTicksLimit:7}},y:{...yL,title:{display:true,text:'Avg NCs',font:{size:10},color:'#94a3b8'}},y2:{...yR,title:{display:true,text:'Avg CAC',font:{size:10},color:'#94a3b8'}}}
+    }
+  });
+}
+
+// ── Insights ──────────────────────────────────────────────────────────────
+function renderInsights(curr) {
+  const ins=[];
+  const m={}; allDaily.forEach(d=>{const k=mKey(d.date);if(!m[k])m[k]={n:0,c:0,cc:0};m[k].n+=d.ncs;if(d.cac>0){m[k].c+=d.cac;m[k].cc++;}});
+  const ma=Object.entries(m).map(([k,v])=>{return{k,n:v.n,c:v.cc?v.c/v.cc:0};});
+  const bm=ma.reduce((a,b)=>b.n>a.n?b:a,ma[0]||{k:'—',n:0,c:0});
+  const bcm=ma.filter(x=>x.c>0).reduce((a,b)=>b.c<a.c?b:a,ma[0]||{k:'—',n:0,c:99999});
+  ins.push({ico:'🏆',t:'Best NC Month: '+bm.k,b:bm.n.toLocaleString()+' NCs · avg CAC ₹'+Math.round(bm.c)});
+  ins.push({ico:'💚',t:'Best CAC Month: '+bcm.k,b:'Avg CAC ₹'+Math.round(bcm.c)+' — most efficient period'});
+
+  const dow=Array.from({length:7},(_,i)=>{return{i,n:0,cnt:0};});
+  allDaily.forEach(d=>{const idx=d.date.getDay();dow[idx].n+=d.ncs;dow[idx].cnt++;});
+  const bd=dow.reduce((a,b)=>b.cnt&&b.n/b.cnt>a.n/a.cnt?b:a,dow[1]);
+  const wd=dow.filter(x=>x.cnt>0).reduce((a,b)=>b.n/b.cnt<a.n/a.cnt?b:a,dow[1]);
+  ins.push({ico:'📅',t:'Best Day: '+DAYS[bd.i],b:'Avg '+Math.round(bd.n/bd.cnt)+' NCs on '+DAYS[bd.i]+'s · worst: '+DAYS[wd.i]+'s ('+Math.round(wd.n/wd.cnt)+')'});
+
+  const vc=curr.filter(d=>d.cac>0);
+  const ac=vc.length?vc.reduce((s,d)=>s+d.cac,0)/vc.length:0;
+  const spikes=vc.filter(d=>d.cac>ac*1.5);
+  if(spikes.length) ins.push({ico:'⚠️',t:spikes.length+' High-CAC Day'+(spikes.length>1?'s':''),b:'CAC >1.5× avg (₹'+Math.round(ac)+') in period — check campaign health on those days'});
+
+  const l30=filterD(30); const p30=prevPeriod(30);
+  if(p30.length){
+    const ls=l30.reduce((s,d)=>s+d.spends,0), ps=p30.reduce((s,d)=>s+d.spends,0);
+    const pc=((ls-ps)/ps*100).toFixed(1);
+    ins.push({ico:'💰',t:'Spend Trend (30D)',b:(ls>ps?'↑':'↓')+' '+Math.abs(pc)+'% vs prior 30 days · Current: ₹'+fmt(ls)});
+  }
+
+  document.getElementById('insRow').innerHTML=ins.map(i=>`<div class="ins"><div class="ins-ico">${i.ico}</div><div><div class="ins-t">${i.t}</div><div class="ins-b">${i.b}</div></div></div>`).join('');
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────
+function renderTable() {
+  const last=allDaily.slice(-30);
+  const med=allDaily.filter(d=>d.cac>0).map(d=>d.cac).sort((a,b)=>a-b);
+  const medVal=med[Math.floor(med.length/2)]||700;
+  const rows=last.slice().reverse().map((d,ri)=>{
+    const ri2=last.length-1-ri;
+    const r7=Math.round(rolling7(last,ri2,'cac'));
+    const n7=Math.round(rolling7(last,ri2,'ncs'));
+    const ndiff=d.ncs-n7;
+    let tag,tc;
+    if(d.cac<=medVal*.8){tag='Excellent';tc='g';}
+    else if(d.cac<=medVal){tag='Good';tc='g';}
+    else if(d.cac<=medVal*1.2){tag='Average';tc='y';}
+    else{tag='High CAC';tc='r';}
+    const ncTr=ndiff>5?`<span class="gd">▲ +${ndiff}</span>`:ndiff<-5?`<span class="gu">▼ ${ndiff}</span>`:`<span style="color:#94a3b8">≈</span>`;
+    return `<tr><td><strong>${dLabel(d.date)}</strong></td><td style="color:#64748b">${DAYS[d.date.getDay()]}</td><td style="font-weight:600">${d.ncs}</td><td>₹${d.spends.toLocaleString()}</td><td style="font-weight:600;color:${d.cac<medVal?'#10b981':'#ef4444'}">${d.cac?'₹'+d.cac.toLocaleString():'—'}</td><td style="color:#64748b">${r7?'₹'+r7.toLocaleString():'—'}</td><td><span class="tag ${tc}">${tag}</span></td><td>${ncTr} vs 7D avg</td></tr>`;
+  });
+  document.getElementById('tBody').innerHTML=rows.join('');
+}
+
+// ── Main render ───────────────────────────────────────────────────────────
+function render() {
+  const curr=filterD(activeF);
+  const prev=prevPeriod(activeF);
+
+  // Get indices into HAIR/BEARD arrays that match filtered daily rows
+  const filteredIdxs=[];
+  allDaily.forEach((d,i)=>{ if(curr.includes(d)) filteredIdxs.push(i); });
+
+  renderKPIs(curr,prev);
+  renderMain(curr);
+  renderSplit(curr,filteredIdxs);
+  renderPie(filteredIdxs);
+  renderMonthly();
+  renderDOW();
+  renderInsights(curr);
+  renderTable();
+}
+
+render();
+</script>
+</body>
+</html>
