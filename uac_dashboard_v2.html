@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palash UAC Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#0f1117; --card:#1a1d27; --border:#2a2d3a; --accent:#6c63ff;
+    --accent2:#ff6584; --green:#00d4aa; --yellow:#ffd166; --red:#ef476f;
+    --text:#e2e8f0; --muted:#94a3b8; --hair:#4cc9f0; --beard:#f72585;
+    --shadow:0 2px 12px rgba(0,0,0,.4);
+  }
+  [data-theme="light"] {
+    --bg:#f0f2f8; --card:#ffffff; --border:#dde1f0; --accent:#6c63ff;
+    --accent2:#ff6584; --green:#00a884; --yellow:#e6a800; --red:#d63060;
+    --text:#1a1d2e; --muted:#6b7280; --hair:#0ea5c9; --beard:#d6006b;
+    --shadow:0 2px 12px rgba(0,0,0,.1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;transition:background .25s,color .25s}
+  .topbar{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:var(--shadow);transition:background .25s,border-color .25s}
+  .logo{font-size:18px;font-weight:700;color:var(--accent)}
+  .logo span{color:var(--text)}
+  .last-updated{font-size:12px;color:var(--muted)}
+  .theme-toggle-btn{display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;color:var(--text);font-weight:500;transition:all .2s;user-select:none}
+  .theme-toggle-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .theme-icon{font-size:16px;transition:transform .35s}
+  [data-theme="light"] .theme-icon{transform:rotate(180deg)}
+  .main{padding:20px 24px;max-width:1600px;margin:0 auto}
+
+  /* Tab Nav */
+  .tab-nav{display:flex;gap:4px;margin-bottom:20px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px;transition:background .25s,border-color .25s}
+  .tab-btn{flex:1;padding:9px 14px;border:none;background:transparent;color:var(--muted);border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s}
+  .tab-btn.active{background:var(--accent);color:#fff}
+  .tab-panel{display:none} .tab-panel.active{display:block}
+
+  /* Control bar */
+  .controls{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;flex-wrap:wrap;gap:12px;transition:background .25s,border-color .25s}
+  .ctrl-group{display:flex;align-items:center;gap:8px}
+  .ctrl-label{font-size:12px;color:var(--muted);font-weight:500}
+  .preset-btn{padding:5px 12px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:6px;cursor:pointer;font-size:12px;transition:all .15s}
+  .preset-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .date-input{background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;transition:background .25s,border-color .25s,color .25s}
+  .date-input:focus{outline:none;border-color:var(--accent)}
+  .toggle-wrap{display:flex;align-items:center;gap:8px}
+  .toggle{position:relative;width:40px;height:20px}
+  .toggle input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:#2a2d3a;border-radius:20px;cursor:pointer;transition:.2s}
+  .slider:before{content:'';position:absolute;width:16px;height:16px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s}
+  input:checked+.slider{background:var(--accent)}
+  input:checked+.slider:before{transform:translateX(20px)}
+  .sep{width:1px;height:28px;background:var(--border)}
+
+  /* Dropdowns for campaign/adgroup */
+  .select-input{background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;min-width:160px;transition:background .25s,border-color .25s,color .25s}
+  .select-input:focus{outline:none;border-color:var(--accent)}
+
+  /* Cards */
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;box-shadow:var(--shadow);transition:background .25s,border-color .25s,box-shadow .25s}
+  .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .kpi.c1::before{background:var(--accent)} .kpi.c2::before{background:var(--green)}
+  .kpi.c3::before{background:var(--yellow)} .kpi.c4::before{background:var(--hair)}
+  .kpi.c5::before{background:var(--beard)}
+  .kpi-label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+  .kpi-val{font-size:26px;font-weight:700;margin:6px 0 2px}
+  .kpi-sub{font-size:11px;color:var(--muted)}
+  .kpi-delta{font-size:12px;font-weight:600;margin-top:4px}
+  .kpi-delta.pos{color:var(--green)} .kpi-delta.neg{color:var(--red)}
+
+  /* Chart cards */
+  .chart-grid{display:grid;gap:16px;margin-bottom:16px}
+  .chart-grid-2{grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow);transition:background .25s,border-color .25s,box-shadow .25s}
+  .chart-title{font-size:14px;font-weight:600;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+  .chart-title small{font-size:11px;color:var(--muted);font-weight:400}
+  .chart-wrap{position:relative}
+  canvas{max-width:100%}
+
+  /* Compare badge */
+  .cmp-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(108,99,255,.2);color:var(--accent);margin-left:8px}
+
+  /* Table */
+  .tbl-wrap{overflow-x:auto;margin-top:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:var(--bg);padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);position:sticky;top:0;transition:background .25s}
+  td{padding:9px 12px;border-bottom:1px solid rgba(42,45,58,.5)}
+  tr:hover td{background:rgba(108,99,255,.04)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+  .badge.ex{background:rgba(0,212,170,.15);color:var(--green)}
+  .badge.gd{background:rgba(108,99,255,.15);color:var(--accent)}
+  .badge.av{background:rgba(255,209,102,.15);color:var(--yellow)}
+  .badge.hi{background:rgba(239,71,111,.15);color:var(--red)}
+
+  /* Compare table */
+  .cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .cmp-period-label{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px}
+
+  .no-data{color:var(--muted);font-size:13px;padding:30px;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Palash <span>UAC Dashboard</span></div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div class="last-updated" id="lastUpdated"></div>
+    <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
+      <span class="theme-icon" id="themeIcon">🌙</span>
+      <span id="themeLabel">Light Mode</span>
+    </button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Tab Navigation -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('overview',this)">📊 Overview</button>
+    <button class="tab-btn" onclick="switchTab('campaign',this)">🎯 Campaign View</button>
+    <button class="tab-btn" onclick="switchTab('adgroup',this)">📁 Adgroup View</button>
+  </div>
+
+  <!-- ═══════════════════ OVERVIEW TAB ═══════════════════ -->
+  <div id="tab-overview" class="tab-panel active">
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="ctrl-group">
+        <span class="ctrl-label">Period:</span>
+        <button class="preset-btn active" onclick="setPreset(7,this)">7D</button>
+        <button class="preset-btn" onclick="setPreset(30,this)">30D</button>
+        <button class="preset-btn" onclick="setPreset(90,this)">90D</button>
+        <button class="preset-btn" onclick="setPreset(0,this)">All</button>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Custom:</span>
+        <input type="date" id="dateFrom" class="date-input" onchange="setCustomRange()">
+        <span style="color:var(--muted);font-size:12px">to</span>
+        <input type="date" id="dateTo" class="date-input" onchange="setCustomRange()">
+      </div>
+      <div class="sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Compare Period:</span>
+        <label class="toggle"><input type="checkbox" id="cmpToggle" onchange="toggleCompare()"><span class="slider"></span></label>
+      </div>
+      <div class="sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Campaign:</span>
+        <select class="select-input" id="campFilter" onchange="updateOverviewCharts()">
+          <option value="all">All Campaigns</option>
+          <option value="UAC-Hair-01">UAC-Hair-01</option>
+          <option value="UAC-Beard-01">UAC-Beard-01</option>
+          <option value="UAC-Beard-Tier(2-3)-01">UAC-Beard-Tier(2-3)-01</option>
+          <option value="UAC-Hair-Tier(2-3)-01">UAC-Hair-Tier(2-3)-01</option>
+          <option value="UAC-Hair-Tier(2-3)-02-2403">UAC-Hair-Tier(2-3)-02-2403</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Adgroup:</span>
+        <select class="select-input" id="agFilter" onchange="updateOverviewCharts()">
+          <option value="all">All Adgroups</option>
+          <option value="Hair-English">Hair-English</option>
+          <option value="Beard- English">Beard-English</option>
+          <option value="Hair-t2-New">Hair-t2-New</option>
+          <option value="S2 - Kit">S2-Kit</option>
+          <option value="S3 - Kit">S3-Kit</option>
+          <option value="Beard- Myth Buster">Beard-Myth Buster</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <!-- Compare KPI (hidden by default) -->
+    <div id="cmpKpiSection" style="display:none">
+      <div class="cmp-grid">
+        <div>
+          <div class="cmp-period-label" id="cmpLabel1">Current Period</div>
+          <div class="kpi-row" id="kpiRowCur"></div>
+        </div>
+        <div>
+          <div class="cmp-period-label" id="cmpLabel2">Previous Period</div>
+          <div class="kpi-row" id="kpiRowPrev"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Trend Chart -->
+    <div class="chart-card" style="margin-bottom:16px">
+      <div class="chart-title">
+        Daily NCs &amp; CAC Trend <span id="trendFilterLabel" class="cmp-badge" style="display:none"></span>
+        <small id="trendDateRange"></small>
+      </div>
+      <div class="chart-wrap" style="height:300px"><canvas id="trendChart"></canvas></div>
+    </div>
+
+    <!-- Spend + Donut row -->
+    <div class="chart-grid chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Hair vs Beard Spend Split <small id="spendDateRange"></small></div>
+        <div class="chart-wrap" style="height:250px"><canvas id="splitChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Spend Mix <small>(period total)</small></div>
+        <div class="chart-wrap" style="height:250px"><canvas id="donutChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Monthly + DoW row -->
+    <div class="chart-grid chart-grid-2" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-title">Monthly Performance</div>
+        <div class="chart-wrap" style="height:250px"><canvas id="monthChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Day-of-Week Avg CAC</div>
+        <div class="chart-wrap" style="height:250px"><canvas id="dowChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Recent table -->
+    <div class="chart-card">
+      <div class="chart-title">Daily Detail Table <small id="tableRange"></small></div>
+      <div class="tbl-wrap" style="max-height:380px;overflow-y:auto">
+        <table><thead><tr>
+          <th>Date</th><th>NCs</th><th>Spends (₹)</th><th>CAC (₹)</th><th>7D Avg CAC</th><th>Rating</th>
+        </tr></thead><tbody id="detailTbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ CAMPAIGN TAB ═══════════════════ -->
+  <div id="tab-campaign" class="tab-panel">
+    <!-- Campaign Controls -->
+    <div class="controls">
+      <div class="ctrl-group">
+        <span class="ctrl-label">Period:</span>
+        <button class="preset-btn" onclick="setPresetCamp(30,this)">30D</button>
+        <button class="preset-btn" onclick="setPresetCamp(90,this)">90D</button>
+        <button class="preset-btn active" onclick="setPresetCamp(0,this)">All</button>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Custom:</span>
+        <input type="date" id="campDateFrom" class="date-input" onchange="updateCampCharts()">
+        <span style="color:var(--muted);font-size:12px">to</span>
+        <input type="date" id="campDateTo" class="date-input" onchange="updateCampCharts()">
+      </div>
+      <div class="sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Compare Period:</span>
+        <label class="toggle"><input type="checkbox" id="campCmpToggle" onchange="toggleCampCompare()"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Campaign compare KPI section -->
+    <div id="campCmpKpiSection" style="display:none">
+      <div class="cmp-grid">
+        <div>
+          <div class="cmp-period-label" id="campCmpLabel1">Current Period</div>
+          <div class="kpi-row" id="campKpiRowCur"></div>
+        </div>
+        <div>
+          <div class="cmp-period-label" id="campCmpLabel2">Previous Period</div>
+          <div class="kpi-row" id="campKpiRowPrev"></div>
+        </div>
+      </div>
+    </div>
+    <div class="kpi-row" id="campKpiRow"></div>
+
+    <div class="chart-card" style="margin-bottom:16px">
+      <div class="chart-title">NCs by Campaign (Daily)</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="campNcChart"></canvas></div>
+    </div>
+    <div class="chart-grid chart-grid-2" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-title">CAC by Campaign (Period)</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="campCacChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">NC Share by Campaign</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="campShareChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Campaign Summary Table</div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Campaign</th><th>NCs</th><th>Allocated Spend (₹)</th><th>CAC (₹)</th><th>Share</th>
+        </tr></thead><tbody id="campTbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ ADGROUP TAB ═══════════════════ -->
+  <div id="tab-adgroup" class="tab-panel">
+    <!-- Adgroup Controls -->
+    <div class="controls">
+      <div class="ctrl-group">
+        <span class="ctrl-label">Period:</span>
+        <button class="preset-btn" onclick="setPresetAg(30,this)">30D</button>
+        <button class="preset-btn" onclick="setPresetAg(90,this)">90D</button>
+        <button class="preset-btn active" onclick="setPresetAg(0,this)">All</button>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Custom:</span>
+        <input type="date" id="agDateFrom" class="date-input" onchange="updateAgCharts()">
+        <span style="color:var(--muted);font-size:12px">to</span>
+        <input type="date" id="agDateTo" class="date-input" onchange="updateAgCharts()">
+      </div>
+      <div class="sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Compare Period:</span>
+        <label class="toggle"><input type="checkbox" id="agCmpToggle" onchange="toggleAgCompare()"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Adgroup compare KPI section -->
+    <div id="agCmpKpiSection" style="display:none">
+      <div class="cmp-grid">
+        <div>
+          <div class="cmp-period-label" id="agCmpLabel1">Current Period</div>
+          <div class="kpi-row" id="agKpiRowCur"></div>
+        </div>
+        <div>
+          <div class="cmp-period-label" id="agCmpLabel2">Previous Period</div>
+          <div class="kpi-row" id="agKpiRowPrev"></div>
+        </div>
+      </div>
+    </div>
+    <div class="kpi-row" id="agKpiRow"></div>
+
+    <div class="chart-card" style="margin-bottom:16px">
+      <div class="chart-title">NCs by Adgroup (Daily)</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="agNcChart"></canvas></div>
+    </div>
+    <div class="chart-grid chart-grid-2" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-title">CAC by Adgroup (Period Avg)</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="agCacChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">NC Share by Adgroup</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="agShareChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Adgroup Summary Table</div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Adgroup</th><th>Campaign(s)</th><th>NCs</th><th>Allocated Spend (₹)</th><th>CAC (₹)</th><th>Share</th>
+        </tr></thead><tbody id="agTbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── Embedded Data ──────────────────────────────────────────────────────────
+// ── Live data (populated after fetch) ─────────────────────────────────────
+const SHEET_ID = '1zMZndoGpKyF1c8dDdQrr8i5OyMmVV0aa5lFvGXPEPcI';
+let RAW=[], HAIR=[], BEARD=[], CAMP_NC={}, AG_NC={};
+
+// Strip formatting, parse number (handles commas, currency symbols)
+function pn(s){ return parseFloat(String(s).replace(/[^0-9.\-]/g,''))||0; }
+
+// DD-cost date: handles both "01/05/25" and "01/05/2025"
+function ddDate(s){
+  const parts=s.split('/');
+  if(parts.length!==3) return s;
+  const [d,m,y]=parts;
+  return d.padStart(2,'0')+'/'+m.padStart(2,'0')+'/'+(y.length===2?'20'+y:y);
+}
+
+// Convert a gviz cell to string — uses formatted value (f) for dates, raw (v) for others
+function _gvizCell(cell, colType){
+  if(!cell||cell.v==null) return '';
+  if(colType==='date'||colType==='datetime'){
+    return cell.f!=null?String(cell.f):'';
+  }
+  return String(cell.v);
+}
+
+// JSONP loader — uses google.visualization.Query.setResponse (always called by gviz)
+// Route responses by reqId so parallel requests work correctly
+const _gvizPending={};
+(function setupGviz(){
+  if(!window.google) window.google={};
+  if(!window.google.visualization) window.google.visualization={};
+  if(!window.google.visualization.Query) window.google.visualization.Query={};
+  window.google.visualization.Query.setResponse=function(resp){
+    const cb=_gvizPending[resp&&resp.reqId];
+    if(cb){ delete _gvizPending[resp.reqId]; cb(resp); }
+  };
+})();
+let _gvizReqId=0;
+function fetchSheet(sheetName){
+  return new Promise((resolve,reject)=>{
+    const id=String(++_gvizReqId);
+    const timer=setTimeout(()=>{ delete _gvizPending[id]; reject(new Error('Timeout: '+sheetName)); },25000);
+    _gvizPending[id]=function(resp){
+      clearTimeout(timer);
+      if(!resp||resp.status!=='ok'){
+        reject(new Error('Sheet "'+sheetName+'": '+(resp&&resp.errors&&resp.errors[0]&&resp.errors[0].message||'error')));
+        return;
+      }
+      const tbl=resp.table;
+      const header=(tbl.cols||[]).map(c=>c.label||'');
+      const rows=(tbl.rows||[]).map(row=>(row.c||[]).map((cell,i)=>_gvizCell(cell,(tbl.cols[i]||{}).type)));
+      resolve([header,...rows]);
+    };
+    const s=document.createElement('script');
+    s.onerror=()=>{ clearTimeout(timer); delete _gvizPending[id]; reject(new Error('Load error: '+sheetName)); };
+    s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+
+      '/gviz/tq?tqx=reqId:'+id+'%3Bout:json&sheet='+encodeURIComponent(sheetName);
+    document.head.appendChild(s);
+  });
+}
+
+async function loadLiveData(){
+  // Fetch sequentially — gviz JSONP reqId routing, safe from file://
+  const daily    = await fetchSheet('Daily');
+  const ddcost   = await fetchSheet('DD - Cost');
+  const campLvl  = await fetchSheet('Campaign Level');
+  const agLvl    = await fetchSheet('Category1');
+
+  // Campaign Level: header "UAC-Beard-01 Date" → col 2 = Beard total NCs
+  const beardTotalNc={};
+  campLvl.slice(1).forEach(r=>{ const d=r[0]?.trim(),nc=pn(r[2]); if(d&&nc) beardTotalNc[d]=nc; });
+
+  // Category1: header "Beard- English Date" → col 2 = Beard-English adgroup NCs
+  const beardEngNc={};
+  agLvl.slice(1).forEach(r=>{ const d=r[0]?.trim(),nc=pn(r[2]); if(d&&nc) beardEngNc[d]=nc; });
+
+  // DD-cost lookup: dateStr → { c: {campName:cost}, a: {agName:cost} }
+  const ddMap={};
+  ddcost.slice(1).forEach(r=>{
+    if(!r[0]||!r[4]) return;
+    const date=ddDate(r[0].trim());
+    const camp=r[1]?.trim(), ag=r[2]?.trim(), cost=pn(r[4]);
+    if(!ddMap[date]) ddMap[date]={c:{},a:{}};
+    if(camp) ddMap[date].c[camp]=(ddMap[date].c[camp]||0)+cost;
+    if(ag)   ddMap[date].a[ag]  =(ddMap[date].a[ag]  ||0)+cost;
+  });
+
+  const HC=['UAC-Hair-01','UAC-Hair-Tier(2-3)-01','UAC-Hair-Tier(2-3)-02-2403'];
+  const BC=['UAC-Beard-01','UAC-Beard-Tier(2-3)-01'];
+
+  // Initialise output arrays
+  RAW=[]; HAIR=[]; BEARD=[];
+  CAMP_NC={'UAC-Hair-01':[],'UAC-Beard-01':[],'UAC-Beard-Tier(2-3)-01':[],
+            'UAC-Hair-Tier(2-3)-01':[],'UAC-Hair-Tier(2-3)-02-2403':[]};
+  AG_NC={'Hair-English':[],'Beard- English':[],'Hair-t2-New':[],
+          'S2 - Kit':[],'S3 - Kit':[],'Beard- Myth Buster':[]};
+
+  // Process each row of Daily tab (skip header, skip zero rows)
+  daily.slice(1).forEach(r=>{
+    const dateStr=r[0]?.trim();
+    const ncs=pn(r[1]), spends=pn(r[2]), cac=pn(r[3]);
+    if(!dateStr||(ncs===0&&spends===0)) return;
+
+    RAW.push([dateStr, ncs, spends, cac]);
+
+    const dd=ddMap[dateStr]||{c:{},a:{}};
+
+    // HAIR / BEARD spend from DD-cost
+    const hairSp=HC.reduce((s,c)=>s+(dd.c[c]||0),0);
+    const beardSp=BC.reduce((s,c)=>s+(dd.c[c]||0),0);
+    HAIR.push(Math.round(hairSp));
+    BEARD.push(Math.round(beardSp));
+
+    // ── NC derivation ─────────────────────────────────────────────────────
+    // Beard total from Campaign Level; Hair = Daily total − Beard
+    const bTotal=beardTotalNc[dateStr]||0;
+    const bEng  =beardEngNc[dateStr]  ||0;
+    const hTotal=Math.max(0, ncs-bTotal);
+
+    // Split Beard by campaign cost ratio (Beard-01 vs Beard-Tier)
+    const b01sp =dd.c['UAC-Beard-01']            ||0;
+    const bT1sp =dd.c['UAC-Beard-Tier(2-3)-01']  ||0;
+    const bTsp  =b01sp+bT1sp;
+    const b01Nc =bTsp>0?Math.round(bTotal*b01sp/bTsp):bTotal;
+    const bT1Nc =bTotal-b01Nc;
+
+    // Split Hair by campaign cost ratio (Hair-01, Tier-01, Tier-02)
+    const h01sp =dd.c['UAC-Hair-01']                 ||0;
+    const hT1sp =dd.c['UAC-Hair-Tier(2-3)-01']       ||0;
+    const hT2sp =dd.c['UAC-Hair-Tier(2-3)-02-2403']  ||0;
+    const hAllSp=h01sp+hT1sp+hT2sp;
+    const h01Nc =hAllSp>0?Math.round(hTotal*h01sp/hAllSp):hTotal;
+    const hT1Nc =hAllSp>0?Math.round(hTotal*hT1sp/hAllSp):0;
+    const hT2Nc =Math.max(0,hTotal-h01Nc-hT1Nc);
+
+    CAMP_NC['UAC-Hair-01'].push(h01Nc);
+    CAMP_NC['UAC-Beard-01'].push(b01Nc);
+    CAMP_NC['UAC-Beard-Tier(2-3)-01'].push(bT1Nc);
+    CAMP_NC['UAC-Hair-Tier(2-3)-01'].push(hT1Nc);
+    CAMP_NC['UAC-Hair-Tier(2-3)-02-2403'].push(hT2Nc);
+
+    // ── Adgroup NCs ───────────────────────────────────────────────────────
+    AG_NC['Hair-English'].push(h01Nc);
+    AG_NC['Beard- English'].push(bEng);
+    // Beard-Myth Buster = remaining Beard NCs after Beard-English
+    AG_NC['Beard- Myth Buster'].push(Math.max(0,bTotal-bEng));
+
+    // Hair Tier adgroups split by cost (Hair-t2-New, S2-Kit, S3-Kit)
+    const hTierNc=hT1Nc+hT2Nc;
+    const htAg={
+      'Hair-t2-New': dd.a['Hair-t2-New']||0,
+      'S2 - Kit':    dd.a['S2 - Kit']   ||0,
+      'S3 - Kit':    dd.a['S3 - Kit']   ||0,
+    };
+    const htAgTot=Object.values(htAg).reduce((a,b)=>a+b,0);
+    const h2nc=htAgTot>0?Math.round(hTierNc*htAg['Hair-t2-New']/htAgTot):0;
+    const s2nc=htAgTot>0?Math.round(hTierNc*htAg['S2 - Kit']   /htAgTot):0;
+    const s3nc=Math.max(0,hTierNc-h2nc-s2nc);
+    AG_NC['Hair-t2-New'].push(h2nc);
+    AG_NC['S2 - Kit'].push(s2nc);
+    AG_NC['S3 - Kit'].push(s3nc);
+  });
+}
+const HAIR_CAMPS = ["UAC-Hair-01", "UAC-Hair-Tier(2-3)-01", "UAC-Hair-Tier(2-3)-02-2403"];
+const BEARD_CAMPS= ["UAC-Beard-01", "UAC-Beard-Tier(2-3)-01"];
+const HAIR_AGS = ["Hair-English", "Hair-t2-New", "S2 - Kit", "S3 - Kit"];
+const BEARD_AGS= ["Beard- English", "Beard- Myth Buster"];
+
+// Adgroup → campaigns map
+const AG_TO_CAMP = {
+  'Hair-English':       ['UAC-Hair-01','UAC-Hair-Tier(2-3)-01'],
+  'Beard- English':     ['UAC-Beard-01','UAC-Beard-Tier(2-3)-01'],
+  'Hair-t2-New':        ['UAC-Hair-Tier(2-3)-02-2403'],
+  'S2 - Kit':           ['UAC-Hair-01','UAC-Hair-Tier(2-3)-02-2403'],
+  'S3 - Kit':           ['UAC-Hair-01'],
+  'Beard- Myth Buster': ['UAC-Beard-01'],
+};
+
+const CAMP_COLORS = {
+  'UAC-Hair-01':'#4cc9f0','UAC-Beard-01':'#f72585',
+  'UAC-Beard-Tier(2-3)-01':'#ff9f1c','UAC-Hair-Tier(2-3)-01':'#06d6a0',
+  'UAC-Hair-Tier(2-3)-02-2403':'#a8dadc'
+};
+const AG_COLORS = {
+  'Hair-English':'#4cc9f0','Beard- English':'#f72585',
+  'Hair-t2-New':'#06d6a0','S2 - Kit':'#a8dadc',
+  'S3 - Kit':'#7209b7','Beard- Myth Buster':'#ff9f1c'
+};
+
+// ── Parse dates ────────────────────────────────────────────────────────────
+function pd(s){ const [d,m,y]=s.split('/'); return new Date(+y,+m-1,+d); }
+function fmt(dt){ return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtNum(n){ return Math.round(n).toLocaleString('en-IN'); }
+
+let allDaily = []; // populated by loadLiveData()
+
+// ── State ──────────────────────────────────────────────────────────────────
+let curFrom=null, curTo=null;
+let campFrom=null, campTo=null;
+let campCompareMode=false;
+let agCompareMode=false;
+let agFrom=null, agTo=null;
+let compareMode=false;
+
+const charts={};
+function themeC(){
+  const light=document.documentElement.getAttribute('data-theme')==='light';
+  return {
+    text : light?'#1a1d2e':'#e2e8f0',
+    muted: light?'#4b5563':'#94a3b8',
+    grid : light?'rgba(180,185,210,.35)':'rgba(42,45,58,.4)',
+  };
+}
+function dc(id){
+  if(charts[id]){ charts[id].destroy(); delete charts[id]; }
+}
+
+// ── Date filtering helpers ─────────────────────────────────────────────────
+function filterRange(from,to){
+  if(!from&&!to) return allDaily;
+  return allDaily.filter(r=>(!from||r.date>=from)&&(!to||r.date<=to));
+}
+function setPreset(days,btn){
+  document.querySelectorAll('.tab-panel.active .controls .preset-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(days===0){ curFrom=null; curTo=null; }
+  else{
+    curTo=allDaily[allDaily.length-1].date;
+    curFrom=new Date(curTo); curFrom.setDate(curFrom.getDate()-(days-1));
+  }
+  document.getElementById('dateFrom').value='';
+  document.getElementById('dateTo').value='';
+  updateOverviewCharts();
+}
+function setCustomRange(){
+  const f=document.getElementById('dateFrom').value;
+  const t=document.getElementById('dateTo').value;
+  if(f){ const [fy,fm,fd]=f.split('-'); curFrom=new Date(+fy,+fm-1,+fd); } else curFrom=null;
+  if(t){ const [ty,tm,td]=t.split('-'); curTo=new Date(+ty,+tm-1,+td); } else curTo=null;
+  document.querySelectorAll('#tab-overview .controls .preset-btn').forEach(b=>b.classList.remove('active'));
+  updateOverviewCharts();
+}
+
+function setPresetCamp(days,btn){
+  document.querySelectorAll('#tab-campaign .controls .preset-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(days===0){ campFrom=null; campTo=null; }
+  else{ campTo=allDaily[allDaily.length-1].date; campFrom=new Date(campTo); campFrom.setDate(campFrom.getDate()-(days-1)); }
+  document.getElementById('campDateFrom').value='';
+  document.getElementById('campDateTo').value='';
+  updateCampCharts();
+}
+function setPresetAg(days,btn){
+  document.querySelectorAll('#tab-adgroup .controls .preset-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(days===0){ agFrom=null; agTo=null; }
+  else{ agTo=allDaily[allDaily.length-1].date; agFrom=new Date(agTo); agFrom.setDate(agFrom.getDate()-(days-1)); }
+  document.getElementById('agDateFrom').value='';
+  document.getElementById('agDateTo').value='';
+  updateAgCharts();
+}
+
+function toggleCompare(){ compareMode=document.getElementById('cmpToggle').checked; updateOverviewCharts(); }
+function toggleCampCompare(){ campCompareMode=document.getElementById('campCmpToggle').checked; updateCampCharts(); }
+function toggleAgCompare(){ agCompareMode=document.getElementById('agCmpToggle').checked; updateAgCharts(); }
+
+// ── Campaign/adgroup filter for trend ─────────────────────────────────────
+function getFilteredDaily(baseData){
+  const camp = document.getElementById('campFilter').value;
+  const ag   = document.getElementById('agFilter').value;
+  if(camp==='all'&&ag==='all') return baseData;
+  return baseData.map(r=>{
+    let ncs=r.ncs, spends=r.spends, cac=r.cac;
+    if(camp!=='all'||ag!=='all'){
+      const isHair = HAIR_CAMPS.includes(camp)||HAIR_AGS.includes(ag);
+      const catSpends = isHair ? r.hair : r.beard;
+      // Get NCs for the filter
+      let fNcs=0, totalCatNcs=0;
+      if(camp!=='all'){
+        fNcs = CAMP_NC[camp]?.[r.idx]||0;
+        totalCatNcs = (HAIR_CAMPS.includes(camp)?HAIR_CAMPS:BEARD_CAMPS)
+          .reduce((s,c)=>s+(CAMP_NC[c]?.[r.idx]||0),0);
+      } else {
+        fNcs = AG_NC[ag]?.[r.idx]||0;
+        totalCatNcs = (HAIR_AGS.includes(ag)?HAIR_AGS:BEARD_AGS)
+          .reduce((s,a)=>s+(AG_NC[a]?.[r.idx]||0),0);
+      }
+      spends = totalCatNcs>0 ? catSpends*(fNcs/totalCatNcs) : 0;
+      ncs = fNcs;
+      cac = ncs>0 ? Math.round(spends/ncs) : 0;
+    }
+    return {...r,ncs,spends,cac};
+  }).filter(r=>r.ncs>0||r.spends>0);
+}
+
+// ── KPI helpers ───────────────────────────────────────────────────────────
+function buildKpiRow(data,containerId){
+  const totalNcs=data.reduce((s,r)=>s+r.ncs,0);
+  const totalSpend=data.reduce((s,r)=>s+r.spends,0);
+  const avgCac=totalNcs>0?totalSpend/totalNcs:0;
+  const days=data.length;
+  const c=document.getElementById(containerId);
+  c.innerHTML=`
+    <div class="kpi c1"><div class="kpi-label">Total NCs</div><div class="kpi-val">${fmtNum(totalNcs)}</div><div class="kpi-sub">${days} days</div></div>
+    <div class="kpi c2"><div class="kpi-label">Total Spend</div><div class="kpi-val">₹${fmtNum(totalSpend)}</div><div class="kpi-sub">₹${fmtNum(totalSpend/days||0)}/day avg</div></div>
+    <div class="kpi c3"><div class="kpi-label">Avg CAC</div><div class="kpi-val">₹${fmtNum(avgCac)}</div><div class="kpi-sub">Spend/NC</div></div>
+    <div class="kpi c4"><div class="kpi-label">Best Day CAC</div><div class="kpi-val">₹${fmtNum(Math.min(...data.filter(r=>r.cac>0).map(r=>r.cac)))}</div><div class="kpi-sub">Lowest CAC day</div></div>
+    <div class="kpi c5"><div class="kpi-label">Avg Daily NCs</div><div class="kpi-val">${(totalNcs/days).toFixed(1)}</div><div class="kpi-sub">NCs per day</div></div>
+  `;
+}
+
+// ── Rolling 7d avg ─────────────────────────────────────────────────────────
+function rolling7(arr,i){
+  const sl=arr.slice(Math.max(0,i-6),i+1).filter(x=>x>0);
+  return sl.length?sl.reduce((s,v)=>s+v,0)/sl.length:null;
+}
+
+// ── CAC Rating ────────────────────────────────────────────────────────────
+function cacBadge(c){
+  if(!c||c<=0) return '';
+  if(c<500) return '<span class="badge ex">Excellent</span>';
+  if(c<700) return '<span class="badge gd">Good</span>';
+  if(c<900) return '<span class="badge av">Average</span>';
+  return '<span class="badge hi">High CAC</span>';
+}
+
+// ── Overview charts ────────────────────────────────────────────────────────
+function updateOverviewCharts(){
+  const camp = document.getElementById('campFilter').value;
+  const ag   = document.getElementById('agFilter').value;
+  const filterLabel = camp!=='all' ? camp : ag!=='all' ? ag : null;
+
+  // Update filter badge
+  const badge = document.getElementById('trendFilterLabel');
+  if(filterLabel){ badge.textContent=filterLabel; badge.style.display='inline-block'; }
+  else badge.style.display='none';
+
+  const base = filterRange(curFrom, curTo);
+  const data = getFilteredDaily(base);
+
+  const kpiSec = document.getElementById('kpiRow');
+  const cmpSec = document.getElementById('cmpKpiSection');
+
+  if(!compareMode){
+    kpiSec.style.display='';
+    cmpSec.style.display='none';
+    buildKpiRow(data,'kpiRow');
+  } else {
+    kpiSec.style.display='none';
+    cmpSec.style.display='block';
+    const days=data.length;
+    const prevTo = data.length>0?new Date(data[0].date):new Date();
+    prevTo.setDate(prevTo.getDate()-1);
+    const prevFrom = new Date(prevTo);
+    prevFrom.setDate(prevFrom.getDate()-(days-1));
+    const prevBase = filterRange(prevFrom,prevTo);
+    const prevData = getFilteredDaily(prevBase);
+    document.getElementById('cmpLabel1').textContent='Current: '+fmt(data[0]?.date||new Date())+' – '+fmt(data[data.length-1]?.date||new Date());
+    document.getElementById('cmpLabel2').textContent='Previous: '+fmt(prevFrom)+' – '+fmt(prevTo);
+    buildKpiRow(data,'kpiRowCur');
+    buildKpiRow(prevData,'kpiRowPrev');
+  }
+
+  const labels=data.map(r=>r.dateStr);
+  const ncsArr=data.map(r=>r.ncs);
+  const cacArr=data.map(r=>r.cac>0?r.cac:null);
+  const roll7=cacArr.map((_,i)=>rolling7(cacArr,i));
+  const hairArr=data.map(r=>r.hair);
+  const beardArr=data.map(r=>r.beard);
+
+  const dateRangeStr = data.length?fmt(data[0].date)+' – '+fmt(data[data.length-1].date):'';
+  document.getElementById('trendDateRange').textContent=dateRangeStr;
+  document.getElementById('spendDateRange').textContent=dateRangeStr;
+  document.getElementById('tableRange').textContent=dateRangeStr;
+
+  // Trend chart
+  dc('trendChart');
+  const tc=document.getElementById('trendChart').getContext('2d');
+  charts['trendChart']=new Chart(tc,{
+    data:{labels, datasets:[
+      {type:'bar',label:'NCs',data:ncsArr,backgroundColor:'rgba(108,99,255,.45)',yAxisID:'y',order:2},
+      {type:'line',label:'CAC',data:cacArr,borderColor:'#ffd166',backgroundColor:'transparent',pointRadius:1,tension:.3,yAxisID:'y1',order:1},
+      {type:'line',label:'7D Avg CAC',data:roll7,borderColor:'#ef476f',borderDash:[5,3],backgroundColor:'transparent',pointRadius:0,tension:.3,yAxisID:'y1',order:0},
+    ]},
+    options:{ responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      scales:{
+        x:{ticks:{color:themeC().muted,maxTicksLimit:12,font:{size:10}},grid:{color:themeC().grid}},
+        y:{position:'left',title:{display:true,text:'NCs',color:themeC().muted},ticks:{color:themeC().muted},grid:{color:themeC().grid}},
+        y1:{position:'right',title:{display:true,text:'CAC (₹)',color:themeC().muted},ticks:{color:themeC().muted},grid:{display:false}}
+      },
+      plugins:{legend:{labels:{color:themeC().text,font:{size:11}}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+(ctx.dataset.yAxisID==='y1'?'₹':'')+Math.round(ctx.parsed.y||0).toLocaleString('en-IN')}}},
+    }
+  });
+
+  // Spend split (only show if no campaign/adgroup filter – or show category split)
+  const showSplit = camp==='all'&&ag==='all';
+  dc('splitChart');
+  const sc=document.getElementById('splitChart').getContext('2d');
+  charts['splitChart']=new Chart(sc,{
+    type:'bar',
+    data:{labels, datasets: showSplit ? [
+      {label:'Hair Spend',data:hairArr,backgroundColor:'rgba(76,201,240,.6)',stack:'s'},
+      {label:'Beard Spend',data:beardArr,backgroundColor:'rgba(247,37,133,.5)',stack:'s'},
+    ] : [
+      {label:'Spend',data:data.map(r=>r.spends),backgroundColor:'rgba(108,99,255,.6)',stack:'s'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{stacked:true,ticks:{color:themeC().muted,maxTicksLimit:12,font:{size:10}},grid:{color:themeC().grid}},
+        y:{stacked:true,ticks:{color:themeC().muted,callback:v=>'₹'+Math.round(v/1000)+'K'},grid:{color:themeC().grid}},
+      },
+      plugins:{legend:{labels:{color:themeC().text,font:{size:11}}},tooltip:{callbacks:{label:ctx=>'₹'+Math.round(ctx.parsed.y).toLocaleString('en-IN')}}}
+    }
+  });
+
+  // Donut
+  const hairTotal=data.reduce((s,r)=>s+r.hair,0);
+  const beardTotal=data.reduce((s,r)=>s+r.beard,0);
+  dc('donutChart');
+  const dc2=document.getElementById('donutChart').getContext('2d');
+  charts['donutChart']=new Chart(dc2,{
+    type:'doughnut',
+    data:{labels:['Hair','Beard'],datasets:[{data:[hairTotal,beardTotal],backgroundColor:['rgba(76,201,240,.8)','rgba(247,37,133,.8)'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{position:'bottom',labels:{color:themeC().text,font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>ctx.label+': ₹'+Math.round(ctx.parsed).toLocaleString('en-IN')+' ('+Math.round(ctx.parsed/(hairTotal+beardTotal)*100)+'%)'}}}
+    }
+  });
+
+  // Monthly
+  const months={};
+  data.forEach(r=>{
+    const k=r.date.toLocaleDateString('en-IN',{month:'short',year:'2-digit'});
+    if(!months[k]) months[k]={ncs:0,spends:0};
+    months[k].ncs+=r.ncs; months[k].spends+=r.spends;
+  });
+  const mLabels=Object.keys(months);
+  dc('monthChart');
+  const mc=document.getElementById('monthChart').getContext('2d');
+  charts['monthChart']=new Chart(mc,{
+    data:{labels:mLabels,datasets:[
+      {type:'bar',label:'NCs',data:mLabels.map(k=>months[k].ncs),backgroundColor:'rgba(108,99,255,.5)',yAxisID:'y',order:2},
+      {type:'line',label:'Avg CAC',data:mLabels.map(k=>months[k].spends/months[k].ncs||0),borderColor:'#ffd166',backgroundColor:'transparent',pointRadius:3,yAxisID:'y1',order:1},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{ticks:{color:themeC().muted,font:{size:10}},grid:{color:themeC().grid}},
+        y:{position:'left',ticks:{color:themeC().muted},grid:{color:themeC().grid}},
+        y1:{position:'right',ticks:{color:themeC().muted,callback:v=>'₹'+v},grid:{display:false}},
+      },
+      plugins:{legend:{labels:{color:themeC().text,font:{size:11}}}}
+    }
+  });
+
+  // DoW
+  const dow=[{s:0,c:0},{s:0,c:0},{s:0,c:0},{s:0,c:0},{s:0,c:0},{s:0,c:0},{s:0,c:0}];
+  data.filter(r=>r.cac>0).forEach(r=>{ dow[r.date.getDay()].s+=r.cac; dow[r.date.getDay()].c++; });
+  const dowLabels=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dowVals=dow.map(d=>d.c?Math.round(d.s/d.c):0);
+  const maxDow=Math.max(...dowVals);
+  dc('dowChart');
+  const dwc=document.getElementById('dowChart').getContext('2d');
+  charts['dowChart']=new Chart(dwc,{
+    type:'bar',
+    data:{labels:dowLabels,datasets:[{label:'Avg CAC',data:dowVals,
+      backgroundColor:dowVals.map(v=>v===maxDow?'rgba(239,71,111,.7)':'rgba(108,99,255,.55)'),borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{ticks:{color:themeC().muted},grid:{color:themeC().grid}},y:{ticks:{color:themeC().muted,callback:v=>'₹'+v},grid:{color:themeC().grid}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'Avg CAC: ₹'+ctx.parsed.y}}}
+    }
+  });
+
+  // Table (last 30 rows reversed)
+  const tableData=[...data].reverse().slice(0,60);
+  const cacVals=data.map(r=>r.cac).filter(c=>c>0);
+  const tbody=document.getElementById('detailTbody');
+  tbody.innerHTML=tableData.map((r,i)=>{
+    const r7=rolling7(tableData.map(x=>x.cac),i);
+    return `<tr>
+      <td>${r.dateStr}</td>
+      <td>${r.ncs}</td>
+      <td>₹${fmtNum(r.spends)}</td>
+      <td>₹${r.cac||'—'}</td>
+      <td>${r7?'₹'+Math.round(r7):'—'}</td>
+      <td>${cacBadge(r.cac)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Campaign charts ────────────────────────────────────────────────────────
+function calcCampStats(data){
+  const campaigns=Object.keys(CAMP_NC);
+  const stats={};
+  campaigns.forEach(c=>{
+    const isHair=HAIR_CAMPS.includes(c);
+    let totalNcs=0, totalSpend=0;
+    data.forEach(r=>{
+      const nc=CAMP_NC[c][r.idx]||0;
+      if(!nc) return;
+      const catNcs=(isHair?HAIR_CAMPS:BEARD_CAMPS).reduce((s,cc)=>s+(CAMP_NC[cc][r.idx]||0),0);
+      const catSpend=isHair?r.hair:r.beard;
+      totalNcs+=nc;
+      totalSpend+=catNcs>0?catSpend*(nc/catNcs):0;
+    });
+    stats[c]={ncs:totalNcs,spend:Math.round(totalSpend),cac:totalNcs>0?Math.round(totalSpend/totalNcs):0};
+  });
+  return stats;
+}
+
+function renderCampKpiBlock(containerId, stats){
+  const campaigns=Object.keys(CAMP_NC);
+  const totalNcsAll=campaigns.reduce((s,c)=>s+stats[c].ncs,0);
+  const el=document.getElementById(containerId);
+  el.innerHTML=campaigns.filter(c=>stats[c].ncs>0).map(c=>{
+    const s=stats[c];
+    return `<div class="kpi" style="border-top:3px solid ${CAMP_COLORS[c]}">
+      <div class="kpi-label" style="font-size:10px">${c}</div>
+      <div class="kpi-val" style="font-size:18px">${fmtNum(s.ncs)} NCs</div>
+      <div class="kpi-sub">₹${fmtNum(s.spend)} | CAC ₹${fmtNum(s.cac)}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateCampCharts(){
+  const cf=document.getElementById('campDateFrom').value;
+  const ct=document.getElementById('campDateTo').value;
+  if(cf){ const [cy,cm,cd]=cf.split('-'); campFrom=new Date(+cy,+cm-1,+cd); }
+  if(ct){ const [cy,cm,cd]=ct.split('-'); campTo=new Date(+cy,+cm-1,+cd); }
+  const data=filterRange(campFrom,campTo);
+
+  const campaigns=Object.keys(CAMP_NC);
+  const campStats=calcCampStats(data);
+  const totalNcsAll=campaigns.reduce((s,c)=>s+campStats[c].ncs,0);
+
+  // ── Compare mode ──────────────────────────────────────────────────────────
+  const cmpSec=document.getElementById('campCmpKpiSection');
+  if(campCompareMode){
+    cmpSec.style.display='block';
+    document.getElementById('campKpiRow').style.display='none';
+    // Split into two halves
+    const from=campFrom||allDaily[0].date;
+    const to=campTo||allDaily[allDaily.length-1].date;
+    const spanMs=to-from;
+    const prevTo=new Date(from-1);
+    const prevFrom=new Date(prevTo-spanMs);
+    const curData=filterRange(from,to);
+    const prevData=filterRange(prevFrom,prevTo);
+    const curStats=calcCampStats(curData);
+    const prevStats=calcCampStats(prevData);
+    renderCampKpiBlock('campKpiRowCur',curStats);
+    renderCampKpiBlock('campKpiRowPrev',prevStats);
+    const fmtD=d=>d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    document.getElementById('campCmpLabel1').textContent=fmtD(from)+' – '+fmtD(to)+' (Current)';
+    document.getElementById('campCmpLabel2').textContent=fmtD(prevFrom)+' – '+fmtD(prevTo)+' (Previous)';
+  } else {
+    cmpSec.style.display='none';
+    document.getElementById('campKpiRow').style.display='';
+    // KPIs (normal)
+    const ck=document.getElementById('campKpiRow');
+    ck.innerHTML=campaigns.map(c=>{
+      const s=campStats[c];
+      return `<div class="kpi" style="border-top:3px solid ${CAMP_COLORS[c]}">
+        <div class="kpi-label" style="font-size:10px">${c}</div>
+        <div class="kpi-val" style="font-size:18px">${fmtNum(s.ncs)} NCs</div>
+        <div class="kpi-sub">₹${fmtNum(s.spend)} | CAC ₹${fmtNum(s.cac)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Stacked daily NC chart
+  dc('campNcChart');
+  const cnc=document.getElementById('campNcChart').getContext('2d');
+  charts['campNcChart']=new Chart(cnc,{
+    type:'bar',
+    data:{labels:data.map(r=>r.dateStr),datasets:campaigns.map(c=>{
+      const nc=data.map(r=>CAMP_NC[c][r.idx]||0);
+      if(nc.every(v=>v===0)) return null;
+      return {label:c,data:nc,backgroundColor:CAMP_COLORS[c]+'99',stack:'s'};
+    }).filter(Boolean)},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{stacked:true,ticks:{color:themeC().muted,maxTicksLimit:14,font:{size:10}},grid:{color:themeC().grid}},
+        y:{stacked:true,ticks:{color:themeC().muted},grid:{color:themeC().grid}},
+      },
+      plugins:{legend:{labels:{color:themeC().text,font:{size:11}}}}
+    }
+  });
+
+  // CAC bar chart
+  const activeCamps=campaigns.filter(c=>campStats[c].ncs>0);
+  dc('campCacChart');
+  const ccc=document.getElementById('campCacChart').getContext('2d');
+  charts['campCacChart']=new Chart(ccc,{
+    type:'bar',
+    data:{labels:activeCamps,datasets:[{
+      label:'CAC (₹)',
+      data:activeCamps.map(c=>campStats[c].cac),
+      backgroundColor:activeCamps.map(c=>CAMP_COLORS[c]+'cc'),
+      borderRadius:5
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      scales:{
+        x:{ticks:{color:themeC().muted,callback:v=>'₹'+v},grid:{color:themeC().grid}},
+        y:{ticks:{color:themeC().muted,font:{size:10}},grid:{display:false}},
+      },
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'CAC: ₹'+ctx.parsed.x}}}
+    }
+  });
+
+  // Share donut
+  dc('campShareChart');
+  const csc=document.getElementById('campShareChart').getContext('2d');
+  charts['campShareChart']=new Chart(csc,{
+    type:'doughnut',
+    data:{labels:activeCamps,datasets:[{data:activeCamps.map(c=>campStats[c].ncs),backgroundColor:activeCamps.map(c=>CAMP_COLORS[c]+'cc'),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{legend:{position:'right',labels:{color:themeC().text,font:{size:10},boxWidth:10}},
+        tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.parsed+' NCs ('+Math.round(ctx.parsed/totalNcsAll*100)+'%)'}}}
+    }
+  });
+
+  // Table
+  const ctb=document.getElementById('campTbody');
+  ctb.innerHTML=campaigns.filter(c=>campStats[c].ncs>0).sort((a,b)=>campStats[b].ncs-campStats[a].ncs).map(c=>{
+    const s=campStats[c];
+    return `<tr>
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${CAMP_COLORS[c]};margin-right:8px"></span>${c}</td>
+      <td>${fmtNum(s.ncs)}</td>
+      <td>₹${fmtNum(s.spend)}</td>
+      <td>₹${fmtNum(s.cac)}</td>
+      <td>${Math.round(s.ncs/totalNcsAll*100)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Adgroup charts ─────────────────────────────────────────────────────────
+function calcAgStats(data){
+  const adgroups=Object.keys(AG_NC);
+  const stats={};
+  adgroups.forEach(a=>{
+    const isHair=HAIR_AGS.includes(a);
+    let totalNcs=0, totalSpend=0;
+    data.forEach(r=>{
+      const nc=AG_NC[a][r.idx]||0;
+      if(!nc) return;
+      const catNcs=(isHair?HAIR_AGS:BEARD_AGS).reduce((s,aa)=>s+(AG_NC[aa][r.idx]||0),0);
+      const catSpend=isHair?r.hair:r.beard;
+      totalNcs+=nc;
+      totalSpend+=catNcs>0?catSpend*(nc/catNcs):0;
+    });
+    stats[a]={ncs:totalNcs,spend:Math.round(totalSpend),cac:totalNcs>0?Math.round(totalSpend/totalNcs):0};
+  });
+  return stats;
+}
+
+function renderAgKpiBlock(containerId, stats){
+  const adgroups=Object.keys(AG_NC);
+  const el=document.getElementById(containerId);
+  el.innerHTML=adgroups.filter(a=>stats[a].ncs>0).map(a=>{
+    const s=stats[a];
+    return `<div class="kpi" style="border-top:3px solid ${AG_COLORS[a]}">
+      <div class="kpi-label" style="font-size:10px">${a}</div>
+      <div class="kpi-val" style="font-size:18px">${fmtNum(s.ncs)} NCs</div>
+      <div class="kpi-sub">₹${fmtNum(s.spend)} | CAC ₹${fmtNum(s.cac)}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateAgCharts(){
+  const af=document.getElementById('agDateFrom').value;
+  const at=document.getElementById('agDateTo').value;
+  if(af){ const [ay,am,ad]=af.split('-'); agFrom=new Date(+ay,+am-1,+ad); }
+  if(at){ const [ay,am,ad]=at.split('-'); agTo=new Date(+ay,+am-1,+ad); }
+  const data=filterRange(agFrom,agTo);
+
+  const adgroups=Object.keys(AG_NC);
+  const agStats=calcAgStats(data);
+  const totalNcsAll=adgroups.reduce((s,a)=>s+agStats[a].ncs,0);
+
+  // ── Compare mode ──────────────────────────────────────────────────────────
+  const agCmpSec=document.getElementById('agCmpKpiSection');
+  if(agCompareMode){
+    agCmpSec.style.display='block';
+    document.getElementById('agKpiRow').style.display='none';
+    const from=agFrom||allDaily[0].date;
+    const to=agTo||allDaily[allDaily.length-1].date;
+    const spanMs=to-from;
+    const prevTo=new Date(from-1);
+    const prevFrom=new Date(prevTo-spanMs);
+    const curData=filterRange(from,to);
+    const prevData=filterRange(prevFrom,prevTo);
+    const curStats=calcAgStats(curData);
+    const prevStats=calcAgStats(prevData);
+    renderAgKpiBlock('agKpiRowCur',curStats);
+    renderAgKpiBlock('agKpiRowPrev',prevStats);
+    const fmtD=d=>d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    document.getElementById('agCmpLabel1').textContent=fmtD(from)+' – '+fmtD(to)+' (Current)';
+    document.getElementById('agCmpLabel2').textContent=fmtD(prevFrom)+' – '+fmtD(prevTo)+' (Previous)';
+  } else {
+    agCmpSec.style.display='none';
+    document.getElementById('agKpiRow').style.display='';
+  }
+
+  // KPIs
+  const ak=document.getElementById('agKpiRow');
+  ak.innerHTML=adgroups.filter(a=>agStats[a].ncs>0).map(a=>{
+    const s=agStats[a];
+    return `<div class="kpi" style="border-top:3px solid ${AG_COLORS[a]}">
+      <div class="kpi-label" style="font-size:10px">${a}</div>
+      <div class="kpi-val" style="font-size:18px">${fmtNum(s.ncs)} NCs</div>
+      <div class="kpi-sub">₹${fmtNum(s.spend)} | CAC ₹${fmtNum(s.cac)}</div>
+    </div>`;
+  }).join('');
+
+  // Stacked daily NC
+  dc('agNcChart');
+  const anc=document.getElementById('agNcChart').getContext('2d');
+  charts['agNcChart']=new Chart(anc,{
+    type:'bar',
+    data:{labels:data.map(r=>r.dateStr),datasets:adgroups.map(a=>{
+      const nc=data.map(r=>AG_NC[a][r.idx]||0);
+      if(nc.every(v=>v===0)) return null;
+      return {label:a,data:nc,backgroundColor:AG_COLORS[a]+'99',stack:'s'};
+    }).filter(Boolean)},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{stacked:true,ticks:{color:themeC().muted,maxTicksLimit:14,font:{size:10}},grid:{color:themeC().grid}},
+        y:{stacked:true,ticks:{color:themeC().muted},grid:{color:themeC().grid}},
+      },
+      plugins:{legend:{labels:{color:themeC().text,font:{size:11}}}}
+    }
+  });
+
+  // CAC bar
+  const activeAgs=adgroups.filter(a=>agStats[a].ncs>0);
+  dc('agCacChart');
+  const acc=document.getElementById('agCacChart').getContext('2d');
+  charts['agCacChart']=new Chart(acc,{
+    type:'bar',
+    data:{labels:activeAgs,datasets:[{
+      label:'CAC (₹)',
+      data:activeAgs.map(a=>agStats[a].cac),
+      backgroundColor:activeAgs.map(a=>AG_COLORS[a]+'cc'),
+      borderRadius:5
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      scales:{
+        x:{ticks:{color:themeC().muted,callback:v=>'₹'+v},grid:{color:themeC().grid}},
+        y:{ticks:{color:themeC().muted,font:{size:10}},grid:{display:false}},
+      },
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'CAC: ₹'+ctx.parsed.x}}}
+    }
+  });
+
+  // Share donut
+  dc('agShareChart');
+  const asc=document.getElementById('agShareChart').getContext('2d');
+  charts['agShareChart']=new Chart(asc,{
+    type:'doughnut',
+    data:{labels:activeAgs,datasets:[{data:activeAgs.map(a=>agStats[a].ncs),backgroundColor:activeAgs.map(a=>AG_COLORS[a]+'cc'),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{legend:{position:'right',labels:{color:themeC().text,font:{size:10},boxWidth:10}},
+        tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.parsed+' NCs ('+Math.round(ctx.parsed/totalNcsAll*100)+'%)'}}}
+    }
+  });
+
+  // Table
+  const atb=document.getElementById('agTbody');
+  atb.innerHTML=activeAgs.sort((a,b)=>agStats[b].ncs-agStats[a].ncs).map(a=>{
+    const s=agStats[a];
+    const camps=(AG_TO_CAMP[a]||[]).join(', ');
+    return `<tr>
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${AG_COLORS[a]};margin-right:8px"></span>${a}</td>
+      <td style="font-size:11px;color:var(--muted)">${camps}</td>
+      <td>${fmtNum(s.ncs)}</td>
+      <td>₹${fmtNum(s.spend)}</td>
+      <td>₹${fmtNum(s.cac)}</td>
+      <td>${Math.round(s.ncs/totalNcsAll*100)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='campaign') updateCampCharts();
+  if(id==='adgroup') updateAgCharts();
+}
+
+// ── Theme toggle ──────────────────────────────────────────────────────────
+function toggleTheme(){
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  const next = isLight ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('uac-theme', next);
+  document.getElementById('themeIcon').textContent = next === 'light' ? '☀️' : '🌙';
+  document.getElementById('themeLabel').textContent = next === 'light' ? 'Dark Mode' : 'Light Mode';
+  // Re-render all active charts so grid/tick colours update
+  const textCol  = next === 'light' ? '#1a1d2e' : '#e2e8f0';
+  const mutedCol = next === 'light' ? '#6b7280' : '#94a3b8';
+  const gridCol  = next === 'light' ? 'rgba(180,185,210,.35)' : 'rgba(42,45,58,.4)';
+  Chart.defaults.color = mutedCol;
+  Object.values(charts).forEach(ch => {
+    if(!ch) return;
+    if(ch.options.scales) {
+      Object.values(ch.options.scales).forEach(ax => {
+        if(ax.ticks)  ax.ticks.color = mutedCol;
+        if(ax.grid)   ax.grid.color  = ax.grid.display===false ? 'transparent' : gridCol;
+        if(ax.title)  ax.title.color = mutedCol;
+      });
+    }
+    if(ch.options.plugins?.legend?.labels) ch.options.plugins.legend.labels.color = textCol;
+    ch.update();
+  });
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init(){
+  // Restore saved theme first (before data load so UI looks right)
+  const savedTheme = localStorage.getItem('uac-theme') || 'dark';
+  if(savedTheme === 'light'){
+    document.documentElement.setAttribute('data-theme','light');
+    document.getElementById('themeIcon').textContent = '☀️';
+    document.getElementById('themeLabel').textContent = 'Dark Mode';
+    Chart.defaults.color = '#4b5563';
+  }
+
+  // Show loading indicator
+  document.getElementById('lastUpdated').textContent = '⏳ Loading live data...';
+
+  try {
+    await loadLiveData();
+
+    // Build allDaily from fetched arrays
+    allDaily = RAW.map((r,i)=>({
+      date:pd(r[0]), dateStr:r[0], ncs:r[1], spends:r[2], cac:r[3],
+      hair:HAIR[i]||0, beard:BEARD[i]||0, idx:i
+    })).filter(r=>r.ncs>0||r.spends>0);
+
+    const last=allDaily[allDaily.length-1];
+    document.getElementById('lastUpdated').textContent='Data through: '+fmt(last.date);
+
+    // Set default: last 7 days
+    curTo=last.date;
+    curFrom=new Date(curTo); curFrom.setDate(curFrom.getDate()-6);
+
+    // Init campaign/adgroup to All (null = no filter)
+    campFrom=null; campTo=null;
+    agFrom=null; agTo=null;
+
+    updateOverviewCharts();
+  } catch(err) {
+    document.getElementById('lastUpdated').textContent = '❌ Failed to load data: '+err.message;
+    console.error('Dashboard load error:', err);
+  }
+}
+init();
+</script>
+</body>
+</html>
